@@ -212,10 +212,23 @@ local bodyPos
 local animateScript
 local lastMoveTo = 0
 local originalWalkSpeed = humanoid.WalkSpeed
+local leftRouteActive = false
+local rightLastMove = 0
 
 -- Replace these with your game coordinates.
-local LEFT_COORD = Vector3.new(-120, 0, 0)
+local LEFT_COORD = Vector3.new(-467.67535400390625, -7.00197696685791, 98.8204574584961)
 local RIGHT_COORD = Vector3.new(120, 0, 0)
+
+local LEFT_ROUTE = {
+    Vector3.new(-467.67535400390625, -7.00197696685791, 98.8204574584961),
+    Vector3.new(-485.04901123046875, -5.003046035766602, 99.99720001220703),
+    Vector3.new(-470.0077819824219, -7.00197696685791, 102.98963165283203),
+    Vector3.new(-472.6876525878906, -7.00197696685791, 26.2437686920166),
+    Vector3.new(-481.8688659667969, -5.103045463562012, 26.805492401123047)
+}
+
+local LEFT_CAM_POS = Vector3.new(-485.0, -5.1, 100.0)
+local LEFT_CAM_LOOK = Vector3.new(-0.04, -0.39, -0.92)
 
 local function disableMotionAnimations()
     animateScript = character and character:FindFirstChild("Animate")
@@ -239,6 +252,58 @@ local function nearestSide(pos)
     return (l <= r) and "Left" or "Right"
 end
 
+local function setLeftCameraShot()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    cam.CameraType = Enum.CameraType.Scriptable
+    cam.CFrame = CFrame.lookAt(LEFT_CAM_POS, LEFT_CAM_POS + LEFT_CAM_LOOK)
+end
+
+local function restoreCamera()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    cam.CameraType = Enum.CameraType.Custom
+end
+
+local function moveToPoint(point, timeout)
+    humanoid:MoveTo(point)
+    local reached = false
+    local done = false
+    local conn
+    conn = humanoid.MoveToFinished:Connect(function(ok)
+        reached = ok
+        done = true
+    end)
+
+    local start = time()
+    while autoPlayEnabled and not done and (time() - start) < timeout do
+        task.wait()
+    end
+
+    if conn then conn:Disconnect() end
+    return reached
+end
+
+local function runLeftRoute()
+    if leftRouteActive then return end
+    leftRouteActive = true
+
+    while autoPlayEnabled and nearestSide(rootPart.Position) == "Left" do
+        for i, point in ipairs(LEFT_ROUTE) do
+            if not autoPlayEnabled then break end
+            if i == 2 then
+                setLeftCameraShot()
+            end
+            moveToPoint(point, 2.4)
+            status.Text = "Status: Auto Play (Left " .. i .. "/" .. #LEFT_ROUTE .. ")"
+            status.TextColor3 = Color3.fromRGB(0, 190, 255)
+        end
+    end
+
+    restoreCamera()
+    leftRouteActive = false
+end
+
 local function startAutoPlay()
     if autoConn then autoConn:Disconnect() end
     autoConn = RunService.Heartbeat:Connect(function()
@@ -250,19 +315,21 @@ local function startAutoPlay()
         end
 
         local side = nearestSide(rootPart.Position)
-        local target = (side == "Left") and LEFT_COORD or RIGHT_COORD
-
-        if (rootPart.Position - target).Magnitude > 3 and (time() - lastMoveTo) > 0.15 then
-            humanoid:MoveTo(target)
-            lastMoveTo = time()
-        end
-
         if side == "Left" then
-            status.Text = "Status: Auto Play (Left)"
+            if not leftRouteActive then
+                task.spawn(runLeftRoute)
+            end
         else
+            if leftRouteActive then
+                restoreCamera()
+            end
+            if (rootPart.Position - RIGHT_COORD).Magnitude > 3 and (time() - rightLastMove) > 0.15 then
+                humanoid:MoveTo(RIGHT_COORD)
+                rightLastMove = time()
+            end
             status.Text = "Status: Auto Play (Right)"
+            status.TextColor3 = Color3.fromRGB(0, 190, 255)
         end
-        status.TextColor3 = Color3.fromRGB(0, 190, 255)
     end)
 end
 
@@ -274,6 +341,7 @@ local function stopAutoPlay()
     if rootPart then
         humanoid:MoveTo(rootPart.Position)
     end
+    restoreCamera()
     if humanoid and originalWalkSpeed then
         humanoid.WalkSpeed = originalWalkSpeed
     end
