@@ -211,6 +211,7 @@ local floatConn
 local bodyPos
 local animateScript
 local lastMoveTo = 0
+local originalWalkSpeed = humanoid.WalkSpeed
 
 -- Replace these with your game coordinates.
 local LEFT_COORD = Vector3.new(-120, 0, 0)
@@ -242,6 +243,12 @@ local function startAutoPlay()
     if autoConn then autoConn:Disconnect() end
     autoConn = RunService.Heartbeat:Connect(function()
         if not autoPlayEnabled or not character or not rootPart then return end
+
+        local boostedSpeed = (originalWalkSpeed or humanoid.WalkSpeed) + 20
+        if humanoid.WalkSpeed ~= boostedSpeed then
+            humanoid.WalkSpeed = boostedSpeed
+        end
+
         local side = nearestSide(rootPart.Position)
         local target = (side == "Left") and LEFT_COORD or RIGHT_COORD
 
@@ -266,6 +273,9 @@ local function stopAutoPlay()
     end
     if rootPart then
         humanoid:MoveTo(rootPart.Position)
+    end
+    if humanoid and originalWalkSpeed then
+        humanoid.WalkSpeed = originalWalkSpeed
     end
 end
 
@@ -322,6 +332,7 @@ local function handleAutoToggle()
     autoPlayEnabled = not autoPlayEnabled
     setAutoVisual(autoPlayEnabled)
     if autoPlayEnabled then
+        originalWalkSpeed = humanoid.WalkSpeed
         disableMotionAnimations()
         startAutoPlay()
     else
