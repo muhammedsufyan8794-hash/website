@@ -74,7 +74,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 34)
 title.Position = UDim2.new(0, 10, 0, 8)
 title.BackgroundTransparency = 1
-title.Text = "Auto play"
+title.Text = "Tomatos Auto"
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextColor3 = Color3.new(1, 1, 1)
@@ -210,6 +210,7 @@ local autoConn
 local floatConn
 local bodyPos
 local animateScript
+local lastMoveTo = 0
 
 -- Replace these with your game coordinates.
 local LEFT_COORD = Vector3.new(-120, 0, 0)
@@ -242,11 +243,16 @@ local function startAutoPlay()
     autoConn = RunService.Heartbeat:Connect(function()
         if not autoPlayEnabled or not character or not rootPart then return end
         local side = nearestSide(rootPart.Position)
+        local target = (side == "Left") and LEFT_COORD or RIGHT_COORD
+
+        if (rootPart.Position - target).Magnitude > 3 and (time() - lastMoveTo) > 0.15 then
+            humanoid:MoveTo(target)
+            lastMoveTo = time()
+        end
+
         if side == "Left" then
-            humanoid:Move(Vector3.new(-1, 0, 0), false)
             status.Text = "Status: Auto Play (Left)"
         else
-            humanoid:Move(Vector3.new(1, 0, 0), false)
             status.Text = "Status: Auto Play (Right)"
         end
         status.TextColor3 = Color3.fromRGB(0, 190, 255)
@@ -258,7 +264,9 @@ local function stopAutoPlay()
         autoConn:Disconnect()
         autoConn = nil
     end
-    humanoid:Move(Vector3.zero, false)
+    if rootPart then
+        humanoid:MoveTo(rootPart.Position)
+    end
 end
 
 local function startFloat()
@@ -352,10 +360,16 @@ end)
 
 task.spawn(function()
     while screenGui.Parent do
-        borderGrad.Rotation = (borderGrad.Rotation + 0.7) % 360
+        borderGrad.Rotation = (borderGrad.Rotation + 0.8) % 360
+        local borderRad = math.rad(borderGrad.Rotation)
+        borderGrad.Offset = Vector2.new(math.cos(borderRad) * 0.35, math.sin(borderRad) * 0.35)
+
         if autoPlayEnabled then
-            autoBorderGrad.Rotation = (autoBorderGrad.Rotation + 1) % 360
+            autoBorderGrad.Rotation = (autoBorderGrad.Rotation + 1.2) % 360
+            local buttonRad = math.rad(autoBorderGrad.Rotation)
+            autoBorderGrad.Offset = Vector2.new(math.cos(buttonRad) * 0.35, math.sin(buttonRad) * 0.35)
         end
+
         task.wait(0.03)
     end
 end)</textarea>
