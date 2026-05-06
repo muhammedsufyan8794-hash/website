@@ -1,368 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roblox Auto Play Script</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-        }
-        .code-container {
-            background: #0d1117;
-            border: 2px solid #30363d;
-            border-radius: 12px;
-            position: relative;
-        }
-        .gradient-text {
-            background: linear-gradient(90deg, #00aaff, #0066ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .copy-btn {
-            background: linear-gradient(135deg, #00aaff, #0066ff);
-            transition: all 0.3s ease;
-        }
-        .copy-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 170, 255, 0.3);
-        }
-        .copied {
-            background: linear-gradient(135deg, #00ff88, #00cc66);
-        }
-        pre {
-            margin: 0;
-            padding: 1.5rem;
-            overflow-x: auto;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #c9d1d9;
-        }
-        .keyword { color: #ff7b72; }
-        .string { color: #a5d6ff; }
-        .comment { color: #8b949e; font-style: italic; }
-        .number { color: #79c0ff; }
-        .function { color: #d2a8ff; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roblox Lua Script</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body class="p-8">
-    <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold gradient-text mb-3">Roblox Auto Play Script</h1>
-            <p class="text-gray-300 text-lg">Draggable UI with Auto Play & Float Features</p>
-        </div>
+<body class="min-h-screen bg-slate-950 text-slate-100 p-5">
+  <main class="max-w-5xl mx-auto">
+    <h1 class="text-xl font-semibold">Raw Roblox Lua Script</h1>
+    <p class="text-slate-300 mt-1 mb-4">This is only the script. Copy and execute.</p>
 
-        <div class="code-container">
-            <div class="flex justify-between items-center p-4 border-b border-gray-700">
-                <span class="text-gray-300 font-semibold">📜 Script Code</span>
-                <button id="copyBtn" class="copy-btn text-white px-6 py-2 rounded-lg font-semibold">
-                    Copy to Clipboard
-                </button>
-            </div>
-            <pre id="code">local UIS = game:GetService("UserInputService")
+    <textarea id="lua" spellcheck="false" class="w-full h-[76vh] rounded-md border border-slate-700 bg-slate-900 p-4 font-mono text-sm leading-6">local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local parentGui = (gethui and gethui()) or player:WaitForChild("PlayerGui")
 
--- UI Root
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "AutoPlayHub"
-screenGui.ResetOnSpawn = false
+local old = parentGui:FindFirstChild("AutoPlayHub")
+if old then
+    old:Destroy()
+end
 
--- Main Frame (Right Side)
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 240, 0, 200)
-mainFrame.Position = UDim2.new(1, -260, 0.5, -100)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.Active = true
-mainFrame.Draggable = true
+local function getChar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    return char, hum, root
+end
 
-local uiCorner = Instance.new("UICorner", mainFrame)
-uiCorner.CornerRadius = UDim.new(0, 10)
-
--- Animated Gradient Outline
-local outline = Instance.new("Frame", mainFrame)
-outline.Size = UDim2.new(1, 6, 1, 6)
-outline.Position = UDim2.new(0, -3, 0, -3)
-outline.ZIndex = 0
-local outCorner = Instance.new("UICorner", outline)
-outCorner.CornerRadius = UDim.new(0, 10)
-
-local grad = Instance.new("UIGradient", outline)
-grad.Color = ColorSequence.new(Color3.fromRGB(0, 170, 255), Color3.fromRGB(0, 102, 255))
-task.spawn(function()
-    while task.wait(0.03) do 
-        grad.Rotation += 2
-    end
+local character, humanoid, rootPart = getChar()
+player.CharacterAdded:Connect(function()
+    task.wait(0.15)
+    character, humanoid, rootPart = getChar()
 end)
 
--- Title "Auto Play" with Gradient
-local title = Instance.new("TextLabel", mainFrame)
-title.Text = "Auto Play"
-title.Size = UDim2.new(1, -20, 0, 35)
-title.Position = UDim2.new(0, 10, 0, 10)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoPlayHub"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = parentGui
+
+local border = Instance.new("Frame")
+border.Name = "Border"
+border.Size = UDim2.new(0, 284, 0, 196)
+border.Position = UDim2.new(1, -306, 0.34, 0)
+border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+border.BorderSizePixel = 0
+border.Parent = screenGui
+Instance.new("UICorner", border).CornerRadius = UDim.new(0, 12)
+
+local borderGrad = Instance.new("UIGradient")
+borderGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 195, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 90, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 120))
+})
+borderGrad.Rotation = 0
+borderGrad.Parent = border
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(1, -4, 1, -4)
+main.Position = UDim2.new(0, 2, 0, 2)
+main.BackgroundColor3 = Color3.fromRGB(11, 14, 20)
+main.BorderSizePixel = 0
+main.Parent = border
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 0, 34)
+title.Position = UDim2.new(0, 10, 0, 8)
 title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 20
+title.Text = "Auto play"
+title.TextScaled = true
 title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Parent = main
 
-local titleGrad = Instance.new("UIGradient", title)
-titleGrad.Color = ColorSequence.new(Color3.fromRGB(0, 170, 255), Color3.fromRGB(0, 102, 255))
+local titleGrad = Instance.new("UIGradient")
+titleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 210, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 90, 255))
+})
+titleGrad.Parent = title
 
--- Auto Play Button
-local autoPlayBtn = Instance.new("TextButton", mainFrame)
-autoPlayBtn.Name = "AutoPlayButton"
-autoPlayBtn.Size = UDim2.new(0, 200, 0, 40)
-autoPlayBtn.Position = UDim2.new(0.5, -100, 0, 55)
-autoPlayBtn.Text = "Auto Play"
-autoPlayBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-autoPlayBtn.TextColor3 = Color3.new(1, 1, 1)
-autoPlayBtn.Font = Enum.Font.GothamBold
-autoPlayBtn.TextSize = 16
-Instance.new("UICorner", autoPlayBtn).CornerRadius = UDim.new(0, 8)
+local autoBorder = Instance.new("Frame")
+autoBorder.Size = UDim2.new(1, -20, 0, 44)
+autoBorder.Position = UDim2.new(0, 10, 0, 50)
+autoBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+autoBorder.BorderSizePixel = 0
+autoBorder.Visible = false
+autoBorder.Parent = main
+Instance.new("UICorner", autoBorder).CornerRadius = UDim.new(0, 10)
 
--- Button Outline (Hidden Initially)
-local btnOutline = Instance.new("Frame", autoPlayBtn)
-btnOutline.Size = UDim2.new(1, 6, 1, 6)
-btnOutline.Position = UDim2.new(0, -3, 0, -3)
-btnOutline.ZIndex = -1
-btnOutline.BackgroundTransparency = 1
-local btnOutCorner = Instance.new("UICorner", btnOutline)
-btnOutCorner.CornerRadius = UDim.new(0, 8)
+local autoBorderGrad = Instance.new("UIGradient")
+autoBorderGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 130, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 70, 190))
+})
+autoBorderGrad.Parent = autoBorder
 
-local btnGrad = Instance.new("UIGradient", btnOutline)
-btnGrad.Color = ColorSequence.new(Color3.fromRGB(0, 170, 255), Color3.fromRGB(0, 102, 255))
+local autoBtn = Instance.new("TextButton")
+autoBtn.Size = UDim2.new(1, -4, 1, -4)
+autoBtn.Position = UDim2.new(0, 2, 0, 2)
+autoBtn.BackgroundColor3 = Color3.fromRGB(24, 30, 40)
+autoBtn.BorderSizePixel = 0
+autoBtn.Text = "Auto Play"
+autoBtn.Font = Enum.Font.GothamBold
+autoBtn.TextScaled = true
+autoBtn.TextColor3 = Color3.fromRGB(232, 240, 255)
+autoBtn.Parent = autoBorder
+Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8)
 
--- Float Label
-local floatLabel = Instance.new("TextLabel", mainFrame)
-floatLabel.Text = "Float"
-floatLabel.Size = UDim2.new(0, 80, 0, 30)
-floatLabel.Position = UDim2.new(0, 20, 0, 110)
+local autoBtnIdle = Instance.new("TextButton")
+autoBtnIdle.Size = UDim2.new(1, -20, 0, 44)
+autoBtnIdle.Position = UDim2.new(0, 10, 0, 50)
+autoBtnIdle.BackgroundColor3 = Color3.fromRGB(24, 30, 40)
+autoBtnIdle.BorderSizePixel = 0
+autoBtnIdle.Text = "Auto Play"
+autoBtnIdle.Font = Enum.Font.GothamBold
+autoBtnIdle.TextScaled = true
+autoBtnIdle.TextColor3 = Color3.fromRGB(232, 240, 255)
+autoBtnIdle.Parent = main
+Instance.new("UICorner", autoBtnIdle).CornerRadius = UDim.new(0, 8)
+
+local floatLabel = Instance.new("TextLabel")
+floatLabel.Size = UDim2.new(0, 70, 0, 28)
+floatLabel.Position = UDim2.new(0, 12, 0, 110)
 floatLabel.BackgroundTransparency = 1
-floatLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-floatLabel.TextSize = 14
-floatLabel.Font = Enum.Font.GothamBold
+floatLabel.Text = "Float"
+floatLabel.TextScaled = true
 floatLabel.TextXAlignment = Enum.TextXAlignment.Left
+floatLabel.Font = Enum.Font.GothamBold
+floatLabel.TextColor3 = Color3.new(1, 1, 1)
+floatLabel.Parent = main
 
-local floatLabelGrad = Instance.new("UIGradient", floatLabel)
-floatLabelGrad.Color = ColorSequence.new(Color3.fromRGB(0, 170, 255), Color3.fromRGB(0, 102, 255))
+local floatGrad = Instance.new("UIGradient")
+floatGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 210, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 90, 255))
+})
+floatGrad.Parent = floatLabel
 
--- Toggle Switch for Float
-local toggleBack = Instance.new("Frame", mainFrame)
-toggleBack.Size = UDim2.new(0, 50, 0, 25)
-toggleBack.Position = UDim2.new(0, 110, 0, 113)
-toggleBack.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-Instance.new("UICorner", toggleBack).CornerRadius = UDim.new(1, 0)
+local toggle = Instance.new("Frame")
+toggle.Size = UDim2.new(0, 56, 0, 28)
+toggle.Position = UDim2.new(0, 84, 0, 110)
+toggle.BackgroundColor3 = Color3.fromRGB(39, 45, 57)
+toggle.BorderSizePixel = 0
+toggle.Parent = main
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
 
-local toggleCircle = Instance.new("Frame", toggleBack)
-toggleCircle.Size = UDim2.new(0, 21, 0, 21)
-toggleCircle.Position = UDim2.new(0, 2, 0, 2)
-toggleCircle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-Instance.new("UICorner", toggleCircle).CornerRadius = UDim.new(1, 0)
+local knob = Instance.new("Frame")
+knob.Size = UDim2.new(0, 22, 0, 22)
+knob.Position = UDim2.new(0, 3, 0, 3)
+knob.BackgroundColor3 = Color3.fromRGB(220, 230, 255)
+knob.BorderSizePixel = 0
+knob.Parent = toggle
+Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
--- Toggle Button (Invisible but clickable)
-local toggleBtn = Instance.new("TextButton", toggleBack)
+local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(1, 0, 1, 0)
 toggleBtn.BackgroundTransparency = 1
 toggleBtn.Text = ""
+toggleBtn.Parent = toggle
 
--- Status Text
-local statusText = Instance.new("TextLabel", mainFrame)
-statusText.Text = "Status: Idle"
-statusText.Size = UDim2.new(1, -20, 0, 20)
-statusText.Position = UDim2.new(0, 10, 1, -30)
-statusText.BackgroundTransparency = 1
-statusText.TextColor3 = Color3.fromRGB(150, 150, 150)
-statusText.TextSize = 11
-statusText.Font = Enum.Font.Gotham
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 20)
+status.Position = UDim2.new(0, 10, 1, -24)
+status.BackgroundTransparency = 1
+status.Text = "Status: Idle"
+status.TextColor3 = Color3.fromRGB(130, 145, 175)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = main
 
---- LOGIC ---
+-- Simple drag that works in executors where .Draggable is unreliable.
+local dragging = false
+local dragStart
+local startPos
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = border.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if not dragging then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+    local delta = input.Position - dragStart
+    border.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end)
+
 local autoPlayEnabled = false
 local floatEnabled = false
-local bPos = nil
-local savedAnimations = {}
-local autoPlayConnection = nil
+local autoConn
+local floatConn
+local bodyPos
+local animateScript
 
--- Animation Removal Function
-local function removeAnimations()
-    savedAnimations = {}
-    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
-        if track.Name == "WalkAnim" or track.Name == "RunAnim" or track.Name == "JumpAnim" then
-            table.insert(savedAnimations, track)
-            track:Stop()
-        end
+-- Replace these with your game coordinates.
+local LEFT_COORD = Vector3.new(-120, 0, 0)
+local RIGHT_COORD = Vector3.new(120, 0, 0)
+
+local function disableMotionAnimations()
+    animateScript = character and character:FindFirstChild("Animate")
+    if animateScript then
+        animateScript.Disabled = true
     end
-    
-    -- Disable default animations
-    local animate = character:FindFirstChild("Animate")
-    if animate then
-        animate.Disabled = true
+    for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+        track:Stop(0.03)
     end
 end
 
--- Restore Animations Function
-local function restoreAnimations()
-    local animate = character:FindFirstChild("Animate")
-    if animate then
-        animate.Disabled = false
+local function restoreAnimationsFast()
+    if animateScript then
+        animateScript.Disabled = false
     end
 end
 
--- Auto Play Button Click
-autoPlayBtn.MouseButton1Click:Connect(function()
-    autoPlayEnabled = not autoPlayEnabled
-    
-    if autoPlayEnabled then
-        autoPlayBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-        btnOutline.BackgroundTransparency = 0
-        statusText.Text = "Status: Auto Play Active"
-        statusText.TextColor3 = Color3.fromRGB(0, 255, 100)
-        
-        -- Animate button outline
-        task.spawn(function()
-            while autoPlayEnabled and task.wait(0.03) do
-                btnGrad.Rotation += 2
-            end
-        end)
-        
-        -- Remove animations
-        removeAnimations()
-        
-        -- Auto Play Logic
-        autoPlayConnection = RunService.Heartbeat:Connect(function()
-            if not autoPlayEnabled then return end
-            
-            local currentPos = rootPart.Position
-            local x = currentPos.X
-            
-            -- Determine direction based on X coordinate
-            -- If X < 0, move left; if X > 0, move right
-            if x < 0 then
-                -- Move Left
-                humanoid:Move(Vector3.new(-1, 0, 0), false)
-            else
-                -- Move Right
-                humanoid:Move(Vector3.new(1, 0, 0), false)
-            end
-        end)
-    else
-        autoPlayBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        btnOutline.BackgroundTransparency = 1
-        statusText.Text = "Status: Idle"
-        statusText.TextColor3 = Color3.fromRGB(150, 150, 150)
-        
-        -- Restore animations
-        restoreAnimations()
-        
-        -- Disconnect auto play
-        if autoPlayConnection then
-            autoPlayConnection:Disconnect()
-            autoPlayConnection = nil
-        end
-    end
-end)
+local function nearestSide(pos)
+    local l = (pos - LEFT_COORD).Magnitude
+    local r = (pos - RIGHT_COORD).Magnitude
+    return (l <= r) and "Left" or "Right"
+end
 
--- Float Toggle Click
-toggleBtn.MouseButton1Click:Connect(function()
-    floatEnabled = not floatEnabled
-    
-    if floatEnabled then
-        toggleBack.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        toggleCircle:TweenPosition(UDim2.new(1, -23, 0, 2), "Out", "Quad", 0.2, true)
-        statusText.Text = "Status: Floating"
-        statusText.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
-        -- Create BodyPosition for floating
-        bPos = Instance.new("BodyPosition")
-        bPos.MaxForce = Vector3.new(0, math.huge, 0)
-        bPos.P = 10000
-        bPos.D = 600
-        bPos.Position = rootPart.Position + Vector3.new(0, 10, 0)
-        bPos.Parent = rootPart
-    else
-        toggleBack.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        toggleCircle:TweenPosition(UDim2.new(0, 2, 0, 2), "Out", "Quad", 0.2, true)
-        
-        if not autoPlayEnabled then
-            statusText.Text = "Status: Idle"
-            statusText.TextColor3 = Color3.fromRGB(150, 150, 150)
+local function startAutoPlay()
+    if autoConn then autoConn:Disconnect() end
+    autoConn = RunService.Heartbeat:Connect(function()
+        if not autoPlayEnabled or not character or not rootPart then return end
+        local side = nearestSide(rootPart.Position)
+        if side == "Left" then
+            humanoid:Move(Vector3.new(-1, 0, 0), false)
+            status.Text = "Status: Auto Play (Left)"
+        else
+            humanoid:Move(Vector3.new(1, 0, 0), false)
+            status.Text = "Status: Auto Play (Right)"
         end
-        
-        -- Remove BodyPosition
-        if bPos then 
-            bPos:Destroy() 
-            bPos = nil 
-        end
-    end
-end)
+        status.TextColor3 = Color3.fromRGB(0, 190, 255)
+    end)
+end
 
--- Float Movement Update
-RunService.Heartbeat:Connect(function()
-    if floatEnabled and bPos and rootPart then
+local function stopAutoPlay()
+    if autoConn then
+        autoConn:Disconnect()
+        autoConn = nil
+    end
+    humanoid:Move(Vector3.zero, false)
+end
+
+local function startFloat()
+    if bodyPos then bodyPos:Destroy() end
+    bodyPos = Instance.new("BodyPosition")
+    bodyPos.MaxForce = Vector3.new(0, math.huge, 0)
+    bodyPos.P = 10000
+    bodyPos.D = 600
+    bodyPos.Position = rootPart.Position + Vector3.new(0, 10, 0)
+    bodyPos.Parent = rootPart
+
+    if floatConn then floatConn:Disconnect() end
+    floatConn = RunService.Heartbeat:Connect(function()
+        if not floatEnabled or not bodyPos or not character or not rootPart then return end
         local ray = Ray.new(rootPart.Position + Vector3.new(0, 2, 0), Vector3.new(0, -500, 0))
         local hit, pos = workspace:FindPartOnRay(ray, character)
-        
         if hit then
-            bPos.Position = Vector3.new(rootPart.Position.X, pos.Y + 10, rootPart.Position.Z)
+            bodyPos.Position = Vector3.new(rootPart.Position.X, pos.Y + 10, rootPart.Position.Z)
+        end
+    end)
+end
+
+local function stopFloat()
+    if floatConn then
+        floatConn:Disconnect()
+        floatConn = nil
+    end
+    if bodyPos then
+        bodyPos:Destroy()
+        bodyPos = nil
+    end
+end
+
+local function setAutoVisual(on)
+    autoBorder.Visible = on
+    autoBtnIdle.Visible = not on
+    if on then
+        autoBtn.BackgroundColor3 = Color3.fromRGB(9, 36, 64)
+    end
+end
+
+local function setFloatVisual(on)
+    if on then
+        toggle.BackgroundColor3 = Color3.fromRGB(0, 125, 230)
+        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(1, -25, 0, 3)}):Play()
+    else
+        toggle.BackgroundColor3 = Color3.fromRGB(39, 45, 57)
+        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(0, 3, 0, 3)}):Play()
+    end
+end
+
+local function handleAutoToggle()
+    autoPlayEnabled = not autoPlayEnabled
+    setAutoVisual(autoPlayEnabled)
+    if autoPlayEnabled then
+        disableMotionAnimations()
+        startAutoPlay()
+    else
+        stopAutoPlay()
+        restoreAnimationsFast()
+        if floatEnabled then
+            status.Text = "Status: Floating"
+            status.TextColor3 = Color3.fromRGB(80, 200, 255)
+        else
+            status.Text = "Status: Idle"
+            status.TextColor3 = Color3.fromRGB(130, 145, 175)
+        end
+    end
+end
+
+autoBtnIdle.MouseButton1Click:Connect(handleAutoToggle)
+autoBtn.MouseButton1Click:Connect(handleAutoToggle)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    floatEnabled = not floatEnabled
+    setFloatVisual(floatEnabled)
+    if floatEnabled then
+        startFloat()
+        if not autoPlayEnabled then
+            status.Text = "Status: Floating"
+            status.TextColor3 = Color3.fromRGB(80, 200, 255)
+        end
+    else
+        stopFloat()
+        if not autoPlayEnabled then
+            status.Text = "Status: Idle"
+            status.TextColor3 = Color3.fromRGB(130, 145, 175)
         end
     end
 end)
 
-print("Auto Play script loaded successfully!")</pre>
-        </div>
+task.spawn(function()
+    while screenGui.Parent do
+        borderGrad.Rotation = (borderGrad.Rotation + 0.7) % 360
+        if autoPlayEnabled then
+            autoBorderGrad.Rotation = (autoBorderGrad.Rotation + 1) % 360
+        end
+        task.wait(0.03)
+    end
+end)</textarea>
 
-        <div class="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
-            <h2 class="text-2xl font-bold gradient-text mb-4">📋 Features</h2>
-            <ul class="text-gray-300 space-y-2">
-                <li>✅ Draggable UI positioned on right side</li>
-                <li>✅ Animated blue gradient outline</li>
-                <li>✅ Auto Play button with gradient outline when active</li>
-                <li>✅ Removes walking/jumping animations when Auto Play is on</li>
-                <li>✅ Auto movement based on X coordinate (left if X < 0, right if X > 0)</li>
-                <li>✅ Float toggle switch with smooth animation</li>
-                <li>✅ Floats 10 studs above ground with raycasting</li>
-                <li>✅ Status indicator showing current mode</li>
-            </ul>
-        </div>
-
-        <div class="mt-6 bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-4">
-            <p class="text-yellow-200 text-sm">
-                ⚠️ <strong>Note:</strong> This script is designed for Roblox executors. Use responsibly and only in games where you have permission.
-            </p>
-        </div>
+    <div class="mt-3 flex gap-3">
+      <button id="copy" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500">Copy</button>
+      <span id="msg" class="text-slate-300"></span>
     </div>
+  </main>
 
-    <script>
-        const copyBtn = document.getElementById('copyBtn');
-        const codeElement = document.getElementById('code');
-
-        copyBtn.addEventListener('click', () => {
-            const code = codeElement.textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                copyBtn.textContent = '✓ Copied!';
-                copyBtn.classList.add('copied');
-                
-                setTimeout(() => {
-                    copyBtn.textContent = 'Copy to Clipboard';
-                    copyBtn.classList.remove('copied');
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                copyBtn.textContent = '✗ Failed';
-                setTimeout(() => {
-                    copyBtn.textContent = 'Copy to Clipboard';
-                }, 2000);
-            });
-        });
-    </script>
+  <script>
+    const btn = document.getElementById("copy");
+    const box = document.getElementById("lua");
+    const msg = document.getElementById("msg");
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(box.value);
+        msg.textContent = "Copied script";
+        setTimeout(() => (msg.textContent = ""), 1200);
+      } catch {
+        msg.textContent = "Copy failed";
+      }
+    });
+  </script>
 </body>
 </html>
