@@ -5,111 +5,111 @@
     <meta charset="UTF-8">
     <style>
         body {
+            margin: 0;
             font-family: Arial, sans-serif;
-            background: #2c2f33;
+            background: #1e1f22;
             color: white;
             text-align: center;
-            padding-top: 50px;
+        }
+
+        .container {
+            margin-top: 100px;
         }
 
         h1 {
-            color: #7289da;
+            color: #5865F2;
         }
 
         input {
-            padding: 10px;
-            width: 300px;
-            border-radius: 5px;
+            padding: 12px;
+            width: 350px;
+            border-radius: 8px;
             border: none;
             font-size: 16px;
+            background: #2b2d31;
+            color: white;
         }
 
         button {
-            padding: 10px 15px;
-            background: #7289da;
+            padding: 12px 20px;
+            background: #5865F2;
             border: none;
             color: white;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
+            margin-left: 5px;
         }
 
         button:hover {
-            background: #5b6eae;
+            background: #4752c4;
         }
 
         .card {
-            margin-top: 30px;
-            background: #23272a;
+            margin-top: 40px;
+            background: #2b2d31;
             display: inline-block;
-            padding: 20px;
-            border-radius: 10px;
-            width: 350px;
+            padding: 25px;
+            border-radius: 15px;
+            width: 400px;
         }
 
         img {
-            width: 128px;
+            width: 120px;
             border-radius: 50%;
-            cursor: pointer;
             margin: 10px;
+            cursor: pointer;
         }
 
         .banner {
             width: 100%;
             border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .note {
+            margin-top: 20px;
+            color: #aaa;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-<h1>Get User Info</h1>
+<div class="container">
+    <h1>Get User Info</h1>
+    <input type="text" id="userId" placeholder="Enter Discord User ID">
+    <button onclick="lookupUser()">Search</button>
 
-<input type="text" id="userId" placeholder="Enter Discord User ID">
-<button onclick="lookupUser()">Search</button>
-
-<div id="result"></div>
+    <div id="result"></div>
+</div>
 
 <script>
-async function lookupUser() {
-    const userId = document.getElementById("userId").value;
+function lookupUser() {
+    const userId = document.getElementById("userId").value.trim();
     const resultDiv = document.getElementById("result");
 
-    resultDiv.innerHTML = "Loading...";
-
-    try {
-        const response = await fetch(`/api/user?id=${userId}`);
-        const data = await response.json();
-
-        if (data.error) {
-            resultDiv.innerHTML = "User not found.";
-            return;
-        }
-
-        resultDiv.innerHTML = `
-            <div class="card">
-                <h2>${data.username}</h2>
-                <p><strong>Created:</strong> ${data.createdAt}</p>
-                <div>
-                    <img src="${data.avatar}" onclick="downloadImage('${data.avatar}', 'avatar.png')" title="Click to download PFP">
-                </div>
-                ${data.banner ? `
-                <div>
-                    <img class="banner" src="${data.banner}" onclick="downloadImage('${data.banner}', 'banner.png')" title="Click to download Banner">
-                </div>` : "<p>No banner</p>"}
-            </div>
-        `;
-    } catch (err) {
-        resultDiv.innerHTML = "Error fetching user.";
+    if (!userId || isNaN(userId)) {
+        resultDiv.innerHTML = "<p>Please enter a valid Discord ID.</p>";
+        return;
     }
-}
 
-function downloadImage(url, filename) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Decode account creation date from Discord Snowflake
+    const discordEpoch = 1420070400000;
+    const timestamp = (BigInt(userId) >> 22n) + BigInt(discordEpoch);
+    const createdDate = new Date(Number(timestamp));
+
+    resultDiv.innerHTML = `
+        <div class="card">
+            <h2>User ID: ${userId}</h2>
+            <p><strong>Account Created:</strong><br>${createdDate.toUTCString()}</p>
+
+            <div class="note">
+                ⚠️ Due to Discord API restrictions, usernames, banners, and avatars 
+                cannot be fetched without a secure backend.
+            </div>
+        </div>
+    `;
 }
 </script>
 
