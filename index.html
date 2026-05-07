@@ -1,477 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Lua Script</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Get User Info</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2c2f33;
+            color: white;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        h1 {
+            color: #7289da;
+        }
+
+        input {
+            padding: 10px;
+            width: 300px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: #7289da;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #5b6eae;
+        }
+
+        .card {
+            margin-top: 30px;
+            background: #23272a;
+            display: inline-block;
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+        }
+
+        img {
+            width: 128px;
+            border-radius: 50%;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .banner {
+            width: 100%;
+            border-radius: 10px;
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 p-5">
-  <main class="max-w-5xl mx-auto">
-    <h1 class="text-xl font-semibold">Raw Roblox Lua Script</h1>
-    <p class="text-slate-300 mt-1 mb-4">This is only the script. Copy and execute.</p>
+<body>
 
-    <textarea id="lua" spellcheck="false" class="w-full h-[76vh] rounded-md border border-slate-700 bg-slate-900 p-4 font-mono text-sm leading-6">local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+<h1>Get User Info</h1>
 
-local player = Players.LocalPlayer
-local parentGui = (gethui and gethui()) or player:WaitForChild("PlayerGui")
+<input type="text" id="userId" placeholder="Enter Discord User ID">
+<button onclick="lookupUser()">Search</button>
 
-local old = parentGui:FindFirstChild("AutoPlayHub")
-if old then
-    old:Destroy()
-end
+<div id="result"></div>
 
-local function getChar()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hum = char:WaitForChild("Humanoid")
-    local root = char:WaitForChild("HumanoidRootPart")
-    return char, hum, root
-end
+<script>
+async function lookupUser() {
+    const userId = document.getElementById("userId").value;
+    const resultDiv = document.getElementById("result");
 
-local character, humanoid, rootPart = getChar()
-player.CharacterAdded:Connect(function()
-    task.wait(0.15)
-    character, humanoid, rootPart = getChar()
-end)
+    resultDiv.innerHTML = "Loading...";
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AutoPlayHub"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = parentGui
+    try {
+        const response = await fetch(`/api/user?id=${userId}`);
+        const data = await response.json();
 
-local border = Instance.new("Frame")
-border.Name = "Border"
-border.Size = UDim2.new(0, 284, 0, 196)
-border.Position = UDim2.new(1, -306, 0.34, 0)
-border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-border.BorderSizePixel = 0
-border.Parent = screenGui
-Instance.new("UICorner", border).CornerRadius = UDim.new(0, 12)
+        if (data.error) {
+            resultDiv.innerHTML = "User not found.";
+            return;
+        }
 
-local borderGrad = Instance.new("UIGradient")
-borderGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 195, 255)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 90, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 120))
-})
-borderGrad.Rotation = 0
-borderGrad.Parent = border
-
-local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.new(1, -4, 1, -4)
-main.Position = UDim2.new(0, 2, 0, 2)
-main.BackgroundColor3 = Color3.fromRGB(11, 14, 20)
-main.BorderSizePixel = 0
-main.Parent = border
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -20, 0, 34)
-title.Position = UDim2.new(0, 10, 0, 8)
-title.BackgroundTransparency = 1
-title.Text = "Tomatos Auto"
-title.TextScaled = true
-title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Parent = main
-
-local titleGrad = Instance.new("UIGradient")
-titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 210, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 90, 255))
-})
-titleGrad.Parent = title
-
-local autoBorder = Instance.new("Frame")
-autoBorder.Size = UDim2.new(1, -20, 0, 44)
-autoBorder.Position = UDim2.new(0, 10, 0, 50)
-autoBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-autoBorder.BorderSizePixel = 0
-autoBorder.Visible = false
-autoBorder.Parent = main
-Instance.new("UICorner", autoBorder).CornerRadius = UDim.new(0, 10)
-
-local autoBorderGrad = Instance.new("UIGradient")
-autoBorderGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 255)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 130, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 70, 190))
-})
-autoBorderGrad.Parent = autoBorder
-
-local autoBtn = Instance.new("TextButton")
-autoBtn.Size = UDim2.new(1, -4, 1, -4)
-autoBtn.Position = UDim2.new(0, 2, 0, 2)
-autoBtn.BackgroundColor3 = Color3.fromRGB(24, 30, 40)
-autoBtn.BorderSizePixel = 0
-autoBtn.Text = "Auto Play"
-autoBtn.Font = Enum.Font.GothamBold
-autoBtn.TextScaled = true
-autoBtn.TextColor3 = Color3.fromRGB(232, 240, 255)
-autoBtn.Parent = autoBorder
-Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8)
-
-local autoBtnIdle = Instance.new("TextButton")
-autoBtnIdle.Size = UDim2.new(1, -20, 0, 44)
-autoBtnIdle.Position = UDim2.new(0, 10, 0, 50)
-autoBtnIdle.BackgroundColor3 = Color3.fromRGB(24, 30, 40)
-autoBtnIdle.BorderSizePixel = 0
-autoBtnIdle.Text = "Auto Play"
-autoBtnIdle.Font = Enum.Font.GothamBold
-autoBtnIdle.TextScaled = true
-autoBtnIdle.TextColor3 = Color3.fromRGB(232, 240, 255)
-autoBtnIdle.Parent = main
-Instance.new("UICorner", autoBtnIdle).CornerRadius = UDim.new(0, 8)
-
-local floatLabel = Instance.new("TextLabel")
-floatLabel.Size = UDim2.new(0, 70, 0, 28)
-floatLabel.Position = UDim2.new(0, 12, 0, 110)
-floatLabel.BackgroundTransparency = 1
-floatLabel.Text = "Float"
-floatLabel.TextScaled = true
-floatLabel.TextXAlignment = Enum.TextXAlignment.Left
-floatLabel.Font = Enum.Font.GothamBold
-floatLabel.TextColor3 = Color3.new(1, 1, 1)
-floatLabel.Parent = main
-
-local floatGrad = Instance.new("UIGradient")
-floatGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 210, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 90, 255))
-})
-floatGrad.Parent = floatLabel
-
-local toggle = Instance.new("Frame")
-toggle.Size = UDim2.new(0, 56, 0, 28)
-toggle.Position = UDim2.new(0, 84, 0, 110)
-toggle.BackgroundColor3 = Color3.fromRGB(39, 45, 57)
-toggle.BorderSizePixel = 0
-toggle.Parent = main
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
-
-local knob = Instance.new("Frame")
-knob.Size = UDim2.new(0, 22, 0, 22)
-knob.Position = UDim2.new(0, 3, 0, 3)
-knob.BackgroundColor3 = Color3.fromRGB(220, 230, 255)
-knob.BorderSizePixel = 0
-knob.Parent = toggle
-Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, 0, 1, 0)
-toggleBtn.BackgroundTransparency = 1
-toggleBtn.Text = ""
-toggleBtn.Parent = toggle
-
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 20)
-status.Position = UDim2.new(0, 10, 1, -24)
-status.BackgroundTransparency = 1
-status.Text = "Status: Idle"
-status.TextColor3 = Color3.fromRGB(130, 145, 175)
-status.Font = Enum.Font.Gotham
-status.TextSize = 12
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Parent = main
-
--- Simple drag that works in executors where .Draggable is unreliable.
-local dragging = false
-local dragStart
-local startPos
-
-main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = border.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-UIS.InputChanged:Connect(function(input)
-    if not dragging then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
-    local delta = input.Position - dragStart
-    border.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end)
-
-local autoPlayEnabled = false
-local floatEnabled = false
-local autoConn
-local floatConn
-local bodyPos
-local animateScript
-local lastMoveTo = 0
-local originalWalkSpeed = humanoid.WalkSpeed
-local leftRouteActive = false
-local rightLastMove = 0
-
--- Replace these with your game coordinates.
-local LEFT_COORD = Vector3.new(-467.67535400390625, -7.00197696685791, 98.8204574584961)
-local RIGHT_COORD = Vector3.new(120, 0, 0)
-
-local LEFT_ROUTE = {
-    Vector3.new(-467.67535400390625, -7.00197696685791, 98.8204574584961),
-    Vector3.new(-485.04901123046875, -5.003046035766602, 99.99720001220703),
-    Vector3.new(-470.0077819824219, -7.00197696685791, 102.98963165283203),
-    Vector3.new(-472.6876525878906, -7.00197696685791, 26.2437686920166),
-    Vector3.new(-481.8688659667969, -5.103045463562012, 26.805492401123047)
+        resultDiv.innerHTML = `
+            <div class="card">
+                <h2>${data.username}</h2>
+                <p><strong>Created:</strong> ${data.createdAt}</p>
+                <div>
+                    <img src="${data.avatar}" onclick="downloadImage('${data.avatar}', 'avatar.png')" title="Click to download PFP">
+                </div>
+                ${data.banner ? `
+                <div>
+                    <img class="banner" src="${data.banner}" onclick="downloadImage('${data.banner}', 'banner.png')" title="Click to download Banner">
+                </div>` : "<p>No banner</p>"}
+            </div>
+        `;
+    } catch (err) {
+        resultDiv.innerHTML = "Error fetching user.";
+    }
 }
 
-local LEFT_CAM_POS = Vector3.new(-485.0, -5.1, 100.0)
-local LEFT_CAM_LOOK = Vector3.new(-0.04, -0.39, -0.92)
+function downloadImage(url, filename) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+</script>
 
-local function disableMotionAnimations()
-    animateScript = character and character:FindFirstChild("Animate")
-    if animateScript then
-        animateScript.Disabled = true
-    end
-    for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
-        track:Stop(0.03)
-    end
-end
-
-local function restoreAnimationsFast()
-    if animateScript then
-        animateScript.Disabled = false
-    end
-end
-
-local function nearestSide(pos)
-    local l = (pos - LEFT_COORD).Magnitude
-    local r = (pos - RIGHT_COORD).Magnitude
-    return (l <= r) and "Left" or "Right"
-end
-
-local function setLeftCameraShot()
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-    cam.CameraType = Enum.CameraType.Scriptable
-    cam.CFrame = CFrame.lookAt(LEFT_CAM_POS, LEFT_CAM_POS + LEFT_CAM_LOOK)
-end
-
-local function restoreCamera()
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-    cam.CameraType = Enum.CameraType.Custom
-end
-
-local function moveToPoint(point, timeout)
-    humanoid:MoveTo(point)
-    local reached = false
-    local done = false
-    local conn
-    conn = humanoid.MoveToFinished:Connect(function(ok)
-        reached = ok
-        done = true
-    end)
-
-    local start = time()
-    while autoPlayEnabled and not done and (time() - start) < timeout do
-        task.wait()
-    end
-
-    if conn then conn:Disconnect() end
-    return reached
-end
-
-local function runLeftRoute()
-    if leftRouteActive then return end
-    leftRouteActive = true
-
-    while autoPlayEnabled and nearestSide(rootPart.Position) == "Left" do
-        for i, point in ipairs(LEFT_ROUTE) do
-            if not autoPlayEnabled then break end
-            if i == 2 then
-                setLeftCameraShot()
-            end
-            moveToPoint(point, 2.4)
-            status.Text = "Status: Auto Play (Left " .. i .. "/" .. #LEFT_ROUTE .. ")"
-            status.TextColor3 = Color3.fromRGB(0, 190, 255)
-        end
-    end
-
-    restoreCamera()
-    leftRouteActive = false
-end
-
-local function startAutoPlay()
-    if autoConn then autoConn:Disconnect() end
-    autoConn = RunService.Heartbeat:Connect(function()
-        if not autoPlayEnabled or not character or not rootPart then return end
-
-        local boostedSpeed = (originalWalkSpeed or humanoid.WalkSpeed) + 20
-        if humanoid.WalkSpeed ~= boostedSpeed then
-            humanoid.WalkSpeed = boostedSpeed
-        end
-
-        local side = nearestSide(rootPart.Position)
-        if side == "Left" then
-            if not leftRouteActive then
-                task.spawn(runLeftRoute)
-            end
-        else
-            if leftRouteActive then
-                restoreCamera()
-            end
-            if (rootPart.Position - RIGHT_COORD).Magnitude > 3 and (time() - rightLastMove) > 0.15 then
-                humanoid:MoveTo(RIGHT_COORD)
-                rightLastMove = time()
-            end
-            status.Text = "Status: Auto Play (Right)"
-            status.TextColor3 = Color3.fromRGB(0, 190, 255)
-        end
-    end)
-end
-
-local function stopAutoPlay()
-    if autoConn then
-        autoConn:Disconnect()
-        autoConn = nil
-    end
-    if rootPart then
-        humanoid:MoveTo(rootPart.Position)
-    end
-    restoreCamera()
-    if humanoid and originalWalkSpeed then
-        humanoid.WalkSpeed = originalWalkSpeed
-    end
-end
-
-local function startFloat()
-    if bodyPos then bodyPos:Destroy() end
-    bodyPos = Instance.new("BodyPosition")
-    bodyPos.MaxForce = Vector3.new(0, math.huge, 0)
-    bodyPos.P = 10000
-    bodyPos.D = 600
-    bodyPos.Position = rootPart.Position + Vector3.new(0, 10, 0)
-    bodyPos.Parent = rootPart
-
-    if floatConn then floatConn:Disconnect() end
-    floatConn = RunService.Heartbeat:Connect(function()
-        if not floatEnabled or not bodyPos or not character or not rootPart then return end
-        local ray = Ray.new(rootPart.Position + Vector3.new(0, 2, 0), Vector3.new(0, -500, 0))
-        local hit, pos = workspace:FindPartOnRay(ray, character)
-        if hit then
-            bodyPos.Position = Vector3.new(rootPart.Position.X, pos.Y + 10, rootPart.Position.Z)
-        end
-    end)
-end
-
-local function stopFloat()
-    if floatConn then
-        floatConn:Disconnect()
-        floatConn = nil
-    end
-    if bodyPos then
-        bodyPos:Destroy()
-        bodyPos = nil
-    end
-end
-
-local function setAutoVisual(on)
-    autoBorder.Visible = on
-    autoBtnIdle.Visible = not on
-    if on then
-        autoBtn.BackgroundColor3 = Color3.fromRGB(9, 36, 64)
-    end
-end
-
-local function setFloatVisual(on)
-    if on then
-        toggle.BackgroundColor3 = Color3.fromRGB(0, 125, 230)
-        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(1, -25, 0, 3)}):Play()
-    else
-        toggle.BackgroundColor3 = Color3.fromRGB(39, 45, 57)
-        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(0, 3, 0, 3)}):Play()
-    end
-end
-
-local function handleAutoToggle()
-    autoPlayEnabled = not autoPlayEnabled
-    setAutoVisual(autoPlayEnabled)
-    if autoPlayEnabled then
-        originalWalkSpeed = humanoid.WalkSpeed
-        disableMotionAnimations()
-        startAutoPlay()
-    else
-        stopAutoPlay()
-        restoreAnimationsFast()
-        if floatEnabled then
-            status.Text = "Status: Floating"
-            status.TextColor3 = Color3.fromRGB(80, 200, 255)
-        else
-            status.Text = "Status: Idle"
-            status.TextColor3 = Color3.fromRGB(130, 145, 175)
-        end
-    end
-end
-
-autoBtnIdle.MouseButton1Click:Connect(handleAutoToggle)
-autoBtn.MouseButton1Click:Connect(handleAutoToggle)
-
-toggleBtn.MouseButton1Click:Connect(function()
-    floatEnabled = not floatEnabled
-    setFloatVisual(floatEnabled)
-    if floatEnabled then
-        startFloat()
-        if not autoPlayEnabled then
-            status.Text = "Status: Floating"
-            status.TextColor3 = Color3.fromRGB(80, 200, 255)
-        end
-    else
-        stopFloat()
-        if not autoPlayEnabled then
-            status.Text = "Status: Idle"
-            status.TextColor3 = Color3.fromRGB(130, 145, 175)
-        end
-    end
-end)
-
-task.spawn(function()
-    while screenGui.Parent do
-        borderGrad.Rotation = (borderGrad.Rotation + 0.8) % 360
-        local borderRad = math.rad(borderGrad.Rotation)
-        borderGrad.Offset = Vector2.new(math.cos(borderRad) * 0.35, math.sin(borderRad) * 0.35)
-
-        if autoPlayEnabled then
-            autoBorderGrad.Rotation = (autoBorderGrad.Rotation + 1.2) % 360
-            local buttonRad = math.rad(autoBorderGrad.Rotation)
-            autoBorderGrad.Offset = Vector2.new(math.cos(buttonRad) * 0.35, math.sin(buttonRad) * 0.35)
-        end
-
-        task.wait(0.03)
-    end
-end)</textarea>
-
-    <div class="mt-3 flex gap-3">
-      <button id="copy" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500">Copy</button>
-      <span id="msg" class="text-slate-300"></span>
-    </div>
-  </main>
-
-  <script>
-    const btn = document.getElementById("copy");
-    const box = document.getElementById("lua");
-    const msg = document.getElementById("msg");
-    btn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(box.value);
-        msg.textContent = "Copied script";
-        setTimeout(() => (msg.textContent = ""), 1200);
-      } catch {
-        msg.textContent = "Copy failed";
-      }
-    });
-  </script>
 </body>
 </html>
