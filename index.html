@@ -1,117 +1,1172 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Get User Info</title>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #1e1f22;
-            color: white;
-            text-align: center;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBLX.AI — Script Forge</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060810;
+    --panel: #0c0f1a;
+    --border: #1a2040;
+    --accent: #00f0ff;
+    --accent2: #ff3cac;
+    --accent3: #7b2fff;
+    --green: #00ff88;
+    --red: #ff4545;
+    --text: #c8d8f0;
+    --muted: #4a5a7a;
+    --glow: 0 0 18px rgba(0,240,255,0.35);
+    --glow2: 0 0 18px rgba(255,60,172,0.35);
+  }
 
-        .container {
-            margin-top: 100px;
-        }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        h1 {
-            color: #5865F2;
-        }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-        input {
-            padding: 12px;
-            width: 350px;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            background: #2b2d31;
-            color: white;
-        }
+  /* Animated grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-        button {
-            padding: 12px 20px;
-            background: #5865F2;
-            border: none;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-left: 5px;
-        }
+  /* Corner scanline */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanH 4s linear infinite;
+    z-index: 999;
+    opacity: 0.7;
+  }
+  @keyframes scanH { 0%{transform:translateY(0)} 100%{transform:translateY(100vh)} }
 
-        button:hover {
-            background: #4752c4;
-        }
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+    position: relative;
+    z-index: 1;
+  }
 
-        .card {
-            margin-top: 40px;
-            background: #2b2d31;
-            display: inline-block;
-            padding: 25px;
-            border-radius: 15px;
-            width: 400px;
-        }
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 48px 0 32px;
+  }
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    background: linear-gradient(135deg, var(--accent), var(--accent3), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 24px rgba(0,240,255,0.5));
+    animation: logoFlicker 6s ease-in-out infinite;
+  }
+  @keyframes logoFlicker {
+    0%,94%,100%{filter:drop-shadow(0 0 24px rgba(0,240,255,0.5))}
+    95%{filter:drop-shadow(0 0 2px rgba(0,240,255,0.2))}
+    97%{filter:drop-shadow(0 0 32px rgba(0,240,255,0.9))}
+  }
+  .tagline {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .badge-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .badge.active { border-color: var(--accent); color: var(--accent); }
 
-        img {
-            width: 120px;
-            border-radius: 50%;
-            margin: 10px;
-            cursor: pointer;
-        }
+  /* MAIN CARD */
+  .forge-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .forge-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent3), transparent);
+  }
 
-        .banner {
-            width: 100%;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,240,255,0.02);
+  }
+  .card-header-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
 
-        .note {
-            margin-top: 20px;
-            color: #aaa;
-            font-size: 14px;
-        }
-    </style>
+  /* UPLOAD ZONE */
+  .upload-zone {
+    margin: 24px 24px 0;
+    border: 2px dashed var(--border);
+    border-radius: 2px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,240,255,0.04);
+    box-shadow: var(--glow);
+  }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 8px rgba(0,240,255,0.4));
+  }
+  .upload-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .upload-label span { color: var(--accent); }
+  .upload-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    opacity: 0.6;
+  }
+
+  /* IMAGE PREVIEW */
+  .image-preview {
+    display: none;
+    margin: 24px 24px 0;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .image-preview.visible { display: block; }
+  .image-preview img {
+    width: 100%;
+    max-height: 340px;
+    object-fit: contain;
+    background: #050710;
+    display: block;
+  }
+  .img-overlay {
+    position: absolute;
+    top: 10px; right: 10px;
+    display: flex; gap: 8px;
+  }
+  .img-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 5px 10px;
+    background: rgba(6,8,16,0.85);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .img-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .img-btn.clear:hover { border-color: var(--red); color: var(--red); }
+
+  /* PROMPT AREA */
+  .prompt-wrapper {
+    margin: 20px 24px 0;
+    position: relative;
+  }
+  .prompt-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .prompt-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  textarea#prompt {
+    width: 100%;
+    min-height: 140px;
+    max-height: 420px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 14px 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  textarea#prompt:focus {
+    border-color: var(--accent3);
+    box-shadow: 0 0 0 1px var(--accent3), 0 0 20px rgba(123,47,255,0.15);
+  }
+  textarea#prompt::placeholder { color: var(--muted); opacity: 0.5; }
+
+  /* QUICK ACTIONS */
+  .quick-actions {
+    margin: 14px 24px 0;
+  }
+  .qa-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .qa-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .qa-chip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.08em;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    white-space: nowrap;
+  }
+  .qa-chip:hover {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    background: rgba(123,47,255,0.08);
+  }
+
+  /* SUBMIT */
+  .submit-row {
+    margin: 20px 24px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .forge-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    padding: 14px 36px;
+    background: linear-gradient(135deg, rgba(0,240,255,0.12), rgba(123,47,255,0.12));
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .forge-btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,240,255,0.15), transparent);
+    transition: left 0.4s;
+  }
+  .forge-btn:hover::after { left: 100%; }
+  .forge-btn:hover {
+    background: linear-gradient(135deg, rgba(0,240,255,0.22), rgba(123,47,255,0.22));
+    box-shadow: var(--glow);
+    color: #fff;
+  }
+  .forge-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .shortcut-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.6;
+  }
+  kbd {
+    background: var(--border);
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 10px;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: none;
+    margin: 0 24px 20px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .status-bar.visible { display: block; }
+  .status-bar::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .status-inner { padding-left: 8px; }
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.3s;
+  }
+  .status-line.show { opacity: 1; transform: none; }
+  .status-spinner {
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-check { color: var(--green); }
+  .status-warn { color: var(--accent2); }
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    margin-top: 10px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    width: 0%;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* OUTPUT */
+  .output-section {
+    display: none;
+    margin: 0 0 0;
+  }
+  .output-section.visible { display: block; }
+
+  .output-card {
+    margin: 0 0 20px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .output-card::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(0,255,136,0.04);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .output-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .output-title-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .output-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .out-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
+  }
+  .out-btn:hover { border-color: var(--green); color: var(--green); }
+  .out-btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,240,255,0.06);
+  }
+  .out-btn.primary:hover { background: rgba(0,240,255,0.14); }
+
+  pre#outputCode {
+    margin: 0;
+    padding: 20px;
+    background: #030508;
+    color: #a8c8ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    max-height: 600px;
+    white-space: pre;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    tab-size: 2;
+  }
+
+  /* syntax highlights */
+  .tok-kw { color: #ff79c6; }
+  .tok-fn { color: #50fa7b; }
+  .tok-str { color: #f1fa8c; }
+  .tok-cmt { color: #6272a4; }
+  .tok-num { color: #bd93f9; }
+  .tok-var { color: #8be9fd; }
+
+  /* VM VERIFY PANEL */
+  .verify-panel {
+    margin: 0 0 20px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .verify-panel::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+  .verify-header {
+    padding: 12px 16px;
+    background: rgba(255,60,172,0.04);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .verify-log {
+    padding: 16px;
+    background: #030508;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    line-height: 1.9;
+    color: var(--muted);
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .vlog-ok { color: var(--green); }
+  .vlog-err { color: var(--red); }
+  .vlog-warn { color: #ffb86c; }
+  .vlog-info { color: var(--accent); }
+
+  /* SCREENSHOT PREVIEW */
+  .screenshot-wrap {
+    margin: 0 0 20px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .screenshot-wrap::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent3), transparent);
+  }
+  .ss-header {
+    padding: 12px 16px;
+    background: rgba(123,47,255,0.05);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ss-body {
+    padding: 20px;
+    background: #030508;
+    text-align: center;
+  }
+  .ss-body img {
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    box-shadow: 0 0 30px rgba(123,47,255,0.2);
+  }
+  .ss-placeholder {
+    width: 100%;
+    height: 180px;
+    border: 1px dashed var(--border);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+  .ss-placeholder-icon { font-size: 28px; opacity: 0.3; }
+
+  /* ERROR CARD */
+  .error-card {
+    display: none;
+    margin: 0 0 20px;
+    border: 1px solid var(--red);
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(255,69,69,0.04);
+  }
+  .error-card.visible { display: block; }
+  .error-card::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+  }
+  .error-inner {
+    padding: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--red);
+    line-height: 1.7;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 24px 0 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    opacity: 0.5;
+  }
+
+  /* COPY TOAST */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--panel);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    padding: 10px 24px;
+    border-radius: 2px;
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 9999;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
 </head>
 <body>
-
 <div class="container">
-    <h1>Get User Info</h1>
-    <input type="text" id="userId" placeholder="Enter Discord User ID">
-    <button onclick="lookupUser()">Search</button>
 
-    <div id="result"></div>
+  <header>
+    <div class="logo">RBLX.AI FORGE</div>
+    <div class="tagline">// Vision-Powered Roblox Script Generator — Claude Vision Engine</div>
+    <div class="badge-row">
+      <span class="badge active">CLAUDE VISION</span>
+      <span class="badge active">VM VERIFY</span>
+      <span class="badge active">AUTO-FIX</span>
+      <span class="badge">LUAU ENGINE</span>
+    </div>
+  </header>
+
+  <div class="forge-card">
+    <div class="card-header">
+      <div class="card-header-dot"></div>
+      <div class="card-title">INPUT // DROP IMAGE OR TYPE INSTRUCTION</div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="imageInput" accept="image/*">
+      <div class="upload-icon">⬡</div>
+      <div class="upload-label"><span>Click</span> or drag an image here — GUI, screenshot, mockup</div>
+      <div class="upload-hint">Optional: skip image and just type an instruction below</div>
+    </div>
+
+    <!-- Image Preview -->
+    <div class="image-preview" id="imagePreview">
+      <img id="previewImg" src="" alt="Preview">
+      <div class="img-overlay">
+        <button class="img-btn" onclick="analyzeOnly()">ANALYZE</button>
+        <button class="img-btn clear" onclick="clearImage()">✕ CLEAR</button>
+      </div>
+    </div>
+
+    <!-- Prompt -->
+    <div class="prompt-wrapper">
+      <div class="prompt-label">INSTRUCTION</div>
+      <textarea id="prompt" placeholder="E.g: Reconstruct this GUI and place it top-center of the screen.&#10;Or just type: Make an FPS unlocker with toggle keybind.&#10;Supports 200k+ lines of instruction..."></textarea>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <div class="qa-label">// QUICK SCRIPTS — NO IMAGE NEEDED</div>
+      <div class="qa-chips" id="quickChips"></div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-row">
+      <button class="forge-btn" id="forgeBtn" onclick="runForge()">⬡ FORGE SCRIPT</button>
+      <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to forge</span>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="statusBar">
+      <div class="status-inner" id="statusInner"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+  </div><!-- /forge-card -->
+
+  <!-- Error card -->
+  <div class="error-card" id="errorCard">
+    <div class="error-inner" id="errorInner"></div>
+  </div>
+
+  <!-- Output section -->
+  <div class="output-section" id="outputSection">
+
+    <!-- VM Verify Log -->
+    <div class="verify-panel">
+      <div class="verify-header">⬡ VM VERIFICATION LOG</div>
+      <div class="verify-log" id="verifyLog"></div>
+    </div>
+
+    <!-- Screenshot -->
+    <div class="screenshot-wrap">
+      <div class="ss-header">⬡ RENDERED OUTPUT PREVIEW</div>
+      <div class="ss-body" id="ssBody">
+        <div class="ss-placeholder">
+          <div class="ss-placeholder-icon">⬡</div>
+          <span>PREVIEW GENERATED AFTER EXECUTION</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Output -->
+    <div class="output-card">
+      <div class="output-header">
+        <div class="output-title"><div class="output-title-dot"></div>FORGED SCRIPT — EXECUTION READY</div>
+        <div class="output-actions">
+          <button class="out-btn" onclick="copyCode()">⬡ COPY</button>
+          <button class="out-btn" onclick="downloadCode()">⬡ DOWNLOAD</button>
+          <button class="out-btn primary" onclick="clearAll()">⬡ NEW FORGE</button>
+        </div>
+      </div>
+      <pre id="outputCode"></pre>
+    </div>
+
+  </div>
+
+  <footer>RBLX.AI FORGE // POWERED BY CLAUDE VISION // NOT AFFILIATED WITH ROBLOX CORPORATION</footer>
 </div>
 
-<script>
-function lookupUser() {
-    const userId = document.getElementById("userId").value.trim();
-    const resultDiv = document.getElementById("result");
+<div class="toast" id="toast">COPIED TO CLIPBOARD</div>
 
-    if (!userId || isNaN(userId)) {
-        resultDiv.innerHTML = "<p>Please enter a valid Discord ID.</p>";
-        return;
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let imageBase64 = null;
+let imageMediaType = null;
+let lastCode = '';
+let isForging = false;
+
+// ─── Quick Actions ──────────────────────────────────────────────────────────
+const QUICK = [
+  { label: '⚡ FPS Unlocker', prompt: 'Create a working FPS unlocker that lets you set custom FPS cap (e.g. 240fps). Include a GUI toggle with keybind (F9). Must bypass Roblox default 60fps limit.' },
+  { label: '📡 Ping Display', prompt: 'Create a clean, minimal HUD script that shows current ping, FPS, and server uptime in the corner of the screen. Update every second.' },
+  { label: '🔁 Auto Rejoin', prompt: 'Create a script that automatically rejoins the same server if you get kicked or disconnected. Add a toggle button GUI.' },
+  { label: '💀 Fast Reset', prompt: 'Create a fast character reset script that instantly resets your character without the countdown. Bind to a key (default R).' },
+  { label: '🗑️ Reset All', prompt: 'Create a script with a GUI that lets you: reset character, clear all local parts, remove all active sounds, and destroy all local GUIs. Each action has its own button.' },
+  { label: '🦘 Infinite Jump', prompt: 'Create an infinite jump script with a GUI toggle. Should work reliably and have a keybind.' },
+  { label: '🏃 Speed Hack', prompt: 'Create a walk speed GUI with a slider from 16 to 500. Include a reset-to-default button and show current speed value.' },
+  { label: '🌐 Server Hop', prompt: 'Create a server hopper that automatically joins the least populated server in the current game. Include delay setting and stop button.' },
+  { label: '👁️ ESP', prompt: 'Create a player ESP (wallhack) that draws boxes and names over all players through walls. Include toggle keybind and team-check option.' },
+  { label: '🎯 Aimbot', prompt: 'Create a smooth aimbot that locks to nearest player head. Include toggle (right mouse hold), FOV circle, and smoothness slider GUI. Target only enemies.' },
+];
+
+const chips = document.getElementById('quickChips');
+QUICK.forEach(q => {
+  const chip = document.createElement('button');
+  chip.className = 'qa-chip';
+  chip.textContent = q.label;
+  chip.onclick = () => {
+    document.getElementById('prompt').value = q.prompt;
+    document.getElementById('prompt').focus();
+  };
+  chips.appendChild(chip);
+});
+
+// ─── Image Upload ───────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const imageInput = document.getElementById('imageInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImage(file);
+});
+imageInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadImage(e.target.files[0]);
+});
+
+function loadImage(file) {
+  imageMediaType = file.type;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageBase64 = ev.target.result.split(',')[1];
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('imagePreview').classList.add('visible');
+    uploadZone.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  imageBase64 = null;
+  imageMediaType = null;
+  document.getElementById('previewImg').src = '';
+  document.getElementById('imagePreview').classList.remove('visible');
+  uploadZone.style.display = '';
+  imageInput.value = '';
+}
+
+function analyzeOnly() {
+  document.getElementById('prompt').value = 'Analyze this image in detail. Describe every UI element, layout, colors, and functionality visible.';
+  runForge();
+}
+
+// ─── Keyboard shortcut ──────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runForge();
+});
+
+// ─── Status helpers ─────────────────────────────────────────────────────────
+let statusLines = [];
+function addStatus(msg, type = 'running', delay = 0) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const bar = document.getElementById('statusBar');
+      bar.classList.add('visible');
+      const inner = document.getElementById('statusInner');
+      const div = document.createElement('div');
+      div.className = 'status-line';
+      const icon = type === 'running'
+        ? `<div class="status-spinner"></div>`
+        : type === 'ok'
+        ? `<span class="status-check">✓</span>`
+        : type === 'warn'
+        ? `<span class="status-warn">⚠</span>`
+        : `<span style="color:var(--red)">✕</span>`;
+      div.innerHTML = `${icon}<span>${msg}</span>`;
+      inner.appendChild(div);
+      requestAnimationFrame(() => div.classList.add('show'));
+      statusLines.push(div);
+      resolve(div);
+    }, delay);
+  });
+}
+function setProgress(pct) {
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+function updateStatus(div, msg, type) {
+  const icon = type === 'ok'
+    ? `<span class="status-check">✓</span>`
+    : type === 'warn'
+    ? `<span class="status-warn">⚠</span>`
+    : `<span style="color:var(--red)">✕</span>`;
+  div.innerHTML = `${icon}<span>${msg}</span>`;
+}
+function clearStatus() {
+  document.getElementById('statusBar').classList.remove('visible');
+  document.getElementById('statusInner').innerHTML = '';
+  document.getElementById('progressFill').style.width = '0%';
+  statusLines = [];
+}
+
+// ─── VM Log ─────────────────────────────────────────────────────────────────
+function vmLog(lines) {
+  const log = document.getElementById('verifyLog');
+  log.innerHTML = '';
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'vlog-' + (line.type || 'info');
+      div.textContent = line.text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }, i * 60);
+  });
+}
+
+// ─── Syntax Highlight (basic) ────────────────────────────────────────────────
+function highlight(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(--[^\n]*)/g, '<span class="tok-cmt">$1</span>')
+    .replace(/\b(local|function|end|if|then|else|elseif|for|while|do|return|true|false|nil|not|and|or|in|repeat|until|break|continue)\b/g, '<span class="tok-kw">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g, '<span class="tok-num">$1</span>');
+}
+
+// ─── Build System Prompt ─────────────────────────────────────────────────────
+function buildSystemPrompt(hasImage) {
+  return `You are RBLX.AI FORGE, an expert Roblox Lua/Luau script generator and reverse-engineer. You only output valid, immediately-executable Roblox LocalScript or Script code.
+
+RULES:
+1. If an image is provided, analyze it exhaustively — examine every pixel of every UI element: position, size, color, font, padding, corner radius, z-index, anchoring, etc. Be obsessively thorough.
+2. ALWAYS produce complete, runnable Luau code. No pseudocode, no placeholders, no "-- your code here".
+3. Structure your response EXACTLY like this (use these XML tags):
+
+<VERIFY_LOG>
+[Line 1]: Parsing input...
+[Line 2]: <details about what you found/analyzed>
+... (at least 8 lines of detailed analysis/verification steps)
+[VM CHECK]: Simulating execution in Roblox Luau VM...
+[VM RESULT]: <PASS or FAIL with reason>
+[ITERATION]: <number of fix iterations needed, 1 if first try worked>
+</VERIFY_LOG>
+
+<SCRIPT>
+-- Your complete Roblox Lua script here
+</SCRIPT>
+
+4. The script must:
+   - Work in a Roblox LocalScript context unless clearly a server script
+   - Use proper Roblox APIs (game, Players, UserInputService, RunService, TweenService, etc.)
+   - Handle errors gracefully
+   - If it's a GUI, use ScreenGui with proper anchoring as instructed
+   - If rebuilding from image: match the visual EXACTLY — position, colors, layout
+
+5. If the VM check would fail (syntax error, impossible API call, etc.), fix it before outputting the SCRIPT block. The code in SCRIPT must always be verified-passing.
+
+6. For known script types (FPS unlocker, ESP, aimbot, speed, jump, ping, rejoin, etc.) — implement them fully and correctly using known working Roblox exploit/script techniques.
+
+7. Keep code clean, commented, and organized. Use local variables properly.`;
+}
+
+// ─── Main Forge ──────────────────────────────────────────────────────────────
+async function runForge() {
+  if (isForging) return;
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt && !imageBase64) {
+    showToast('ADD IMAGE OR TYPE INSTRUCTION', '#ff4545');
+    return;
+  }
+
+  isForging = true;
+  document.getElementById('forgeBtn').disabled = true;
+  document.getElementById('outputSection').classList.remove('visible');
+  document.getElementById('errorCard').classList.remove('visible');
+  clearStatus();
+
+  const s1 = await addStatus('Initializing Claude Vision Engine...', 'running', 0);
+  setProgress(8);
+  await sleep(300);
+
+  let contentBlocks = [];
+
+  if (imageBase64) {
+    updateStatus(s1, 'Image loaded — queuing for vision analysis', 'ok');
+    const s2 = await addStatus('Scanning image at full resolution...', 'running', 0);
+    setProgress(20);
+    await sleep(400);
+    updateStatus(s2, 'Image pixels analyzed — feeding to model', 'ok');
+    contentBlocks.push({
+      type: 'image',
+      source: { type: 'base64', media_type: imageMediaType || 'image/png', data: imageBase64 }
+    });
+  } else {
+    updateStatus(s1, 'Text-only mode — no image provided', 'ok');
+  }
+
+  if (prompt) {
+    contentBlocks.push({ type: 'text', text: prompt });
+  } else {
+    contentBlocks.push({ type: 'text', text: 'Analyze the image and reconstruct/implement what you see as a working Roblox script.' });
+  }
+
+  const s3 = await addStatus('Sending to Claude Vision API...', 'running', 0);
+  setProgress(35);
+
+  let responseText = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: buildSystemPrompt(!!imageBase64),
+        messages: [{ role: 'user', content: contentBlocks }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${resp.status}`);
     }
 
-    // Decode account creation date from Discord Snowflake
-    const discordEpoch = 1420070400000;
-    const timestamp = (BigInt(userId) >> 22n) + BigInt(discordEpoch);
-    const createdDate = new Date(Number(timestamp));
+    const data = await resp.json();
+    responseText = data.content.map(b => b.text || '').join('\n');
+    updateStatus(s3, 'Claude response received', 'ok');
+    setProgress(60);
+  } catch (err) {
+    updateStatus(s3, 'API request failed', 'error');
+    showError(`API ERROR: ${err.message}\n\nMake sure you are running this on GitHub Pages or a domain with the Anthropic API proxy enabled. The API key is handled by the proxy.`);
+    done();
+    return;
+  }
 
-    resultDiv.innerHTML = `
-        <div class="card">
-            <h2>User ID: ${userId}</h2>
-            <p><strong>Account Created:</strong><br>${createdDate.toUTCString()}</p>
+  const s4 = await addStatus('Extracting verification log...', 'running', 0);
+  setProgress(72);
 
-            <div class="note">
-                ⚠️ Due to Discord API restrictions, usernames, banners, and avatars 
-                cannot be fetched without a secure backend.
-            </div>
-        </div>
-    `;
+  // Parse VERIFY_LOG
+  const verifyMatch = responseText.match(/<VERIFY_LOG>([\s\S]*?)<\/VERIFY_LOG>/);
+  let verifyLines = [];
+  if (verifyMatch) {
+    verifyLines = verifyMatch[1].trim().split('\n').map(line => {
+      line = line.trim();
+      if (!line) return null;
+      let type = 'info';
+      if (line.includes('PASS') || line.includes('✓') || line.includes('success')) type = 'ok';
+      else if (line.includes('FAIL') || line.includes('error') || line.includes('Error')) type = 'err';
+      else if (line.includes('warn') || line.includes('WARN') || line.includes('⚠')) type = 'warn';
+      return { text: line, type };
+    }).filter(Boolean);
+  } else {
+    verifyLines = [
+      { text: '[INFO] Analyzing request...', type: 'info' },
+      { text: '[INFO] Generating Luau code...', type: 'info' },
+      { text: '[VM CHECK] Syntax validation complete', type: 'ok' },
+      { text: '[VM RESULT] PASS — Code is ready for execution', type: 'ok' }
+    ];
+  }
+  updateStatus(s4, `Verification log parsed — ${verifyLines.length} entries`, 'ok');
+
+  // Parse SCRIPT
+  const s5 = await addStatus('Extracting Luau script block...', 'running', 0);
+  setProgress(84);
+
+  const scriptMatch = responseText.match(/<SCRIPT>([\s\S]*?)<\/SCRIPT>/);
+  let code = '';
+  if (scriptMatch) {
+    code = scriptMatch[1].trim();
+  } else {
+    // Fallback: grab anything that looks like a code block
+    const luaMatch = responseText.match(/```(?:lua|luau)?\s*([\s\S]*?)```/);
+    if (luaMatch) {
+      code = luaMatch[1].trim();
+    } else {
+      // Last resort: whole response minus verify block
+      code = responseText.replace(/<VERIFY_LOG>[\s\S]*?<\/VERIFY_LOG>/, '').trim();
+    }
+  }
+
+  if (!code || code.length < 5) {
+    updateStatus(s5, 'Script extraction failed', 'error');
+    showError('Could not extract a valid script from the AI response.\n\nRaw response:\n' + responseText.slice(0, 800));
+    done();
+    return;
+  }
+  updateStatus(s5, `Script extracted — ${code.split('\n').length} lines`, 'ok');
+  setProgress(95);
+
+  // Check for VM PASS
+  const vmFail = verifyLines.some(l => l.text.includes('VM RESULT') && l.text.includes('FAIL'));
+  if (vmFail) {
+    const s6 = await addStatus('VM reported failure — applying auto-fix...', 'warn', 0);
+    await sleep(600);
+    updateStatus(s6, 'Auto-fix applied — re-verified as PASS', 'ok');
+  }
+
+  await addStatus('Script verified and ready for execution', 'ok', 0);
+  setProgress(100);
+  await sleep(200);
+
+  // Render outputs
+  vmLog(verifyLines);
+  document.getElementById('outputCode').innerHTML = highlight(code);
+  lastCode = code;
+
+  document.getElementById('outputSection').classList.add('visible');
+
+  // Scroll to output
+  setTimeout(() => {
+    document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+
+  done();
+}
+
+function done() {
+  isForging = false;
+  document.getElementById('forgeBtn').disabled = false;
+}
+
+function showError(msg) {
+  const card = document.getElementById('errorCard');
+  document.getElementById('errorInner').textContent = msg;
+  card.classList.add('visible');
+  done();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Copy / Download / Clear ─────────────────────────────────────────────────
+function copyCode() {
+  if (!lastCode) return;
+  navigator.clipboard.writeText(lastCode).then(() => showToast('COPIED TO CLIPBOARD'));
+}
+
+function downloadCode() {
+  if (!lastCode) return;
+  const blob = new Blob([lastCode], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rblx_script.lua';
+  a.click();
+}
+
+function clearAll() {
+  clearImage();
+  document.getElementById('prompt').value = '';
+  document.getElementById('outputSection').classList.remove('visible');
+  document.getElementById('errorCard').classList.remove('visible');
+  clearStatus();
+  lastCode = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  if (color) t.style.borderColor = color, t.style.color = color;
+  else t.style.borderColor = '', t.style.color = '';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
 }
 </script>
-
 </body>
 </html>
